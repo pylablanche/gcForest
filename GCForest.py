@@ -1,55 +1,100 @@
-import numpy as np
-#import matplotlib.pyplot as plt
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import cross_val_score
 import itertools
+import numpy as np
+# import matplotlib.pyplot as plt
+from sklearn.ensemble import RandomForestClassifier
+# from sklearn.model_selection import cross_val_score
+
 
 class gcForest(object):
 
     def __init__(self, n_tree=51, n_pseudoRF=1, n_completeRF=1, target_accuracy=None):
 
-        self.n_layer = 1
-        self.n_pseudoRF = int(n_pseudoRF)
-        self.n_completeRF = int(n_completeRF)
-        self.n_tree = int(n_tree)
-        self.tgt_acc = target_accuracy
+        setattr(self, 'n_layer', 1)
+        setattr(self, 'n_pseudoRF', int(n_pseudoRF))
+        setattr(self, 'n_completeRF', int(n_completeRF))
+        setattr(self, 'n_tree', int(n_tree))
+        setattr(self, 'target_accuracy', target_accuracy)
 
-    def mg_scanning(self, X, y, window=None, shape=None):
+    def load_data(self, X, y, shape_data):
 
-        self.X = X
-        self.shape_data = shape
-        self.y = y
+        for attr in ['X','y','shape_data']:
+            if not hasattr(self, attr):
+                setattr(self, attr, eval(attr))
+
+    def mg_scanning(self, X, y, shape_1data, window=None):
+
+        if len(shape_1data)<2:
+            raise ValueError('shape parameter must be a tuple')
+
+        self.load_data(X, y, shape_1data)
+
+        mg_pred_prob = []
 
         for wdw_size in window:
-            sliced_X = self._window_slicing_img(wdw_size)
-#            pred_pseudoRF = self._pseudoRF_mgs(sliced_X, self.y)
+            wdw_pred_prob = self.window_slicing_pred_prob(window=wdw_size)
+            mg_pred_prob.append(wdw_pred_prob)
 
-        return sliced_X
+        return np.ravel(mg_pred_prob)
+
+    def window_slicing_pred_prob(self, window, n_tree=30, min_samples=0.1):
+
+        pred_prob_prf, pred_prob_crf = [], []
+        prf = RandomForestClassifier(n_estimators=n_tree, max_features='sqrt',
+                                     min_samples_split=min_samples)
+        crf = RandomForestClassifier(n_estimators=n_tree, max_features=None,
+                                     min_samples_split=min_samples)
+
+        if self.shape_1data[1]>1:
+            sliced_X, sliced_y = self._window_slicing_img(window=window)
+            prf.fit(sliced_X, sliced_y)
+            crf.fit(sliced_X, sliced_y)
+            for sliceX in sliced_X:
+                pred_prob_prf.append(prf.predict_proba(sliceX))
+                pred_prob_crf.append(crf.predict_proba(sliceX))
+        else:
+            sliced_X, sliced_y = self._window_slicing_img(window=window)
+            prf.fit(sliced_X, sliced_y)
+            crf.fit(sliced_X, sliced_y)
+            for sliceX in sliced_X:
+                pred_prob_prf.append(prf.predict_proba(sliceX))
+                pred_prob_crf.append(crf.predict_proba(sliceX))
+
+        return np.concatenate([pred_prob_prf,pred_prob_crf])
 
     def _window_slicing_img(self, window):
 
-        if any(s < window for s in self.shape_data):
+        if any(s < window for s in self.shape_1data):
              raise ValueError('window must be smaller than both dimensions for an image')
 
         sliced_imgs = []
-        refs = np.arange(0, (self.shape_data[0]-window)*self.shape_data[1], self.shape_data[1])
+        sliced_target = []
+        refs = np.arange(0, (self.shape_1data[0]-window)*self.shape_1data[1], self.shape_1data[1])
 
-        iterx = list(range(self.shape_data[0]-window+1))
-        itery = list(range(self.shape_data[1]-window+1))
+        iterx = list(range(self.shape_1data[0]-window+1))
+        itery = list(range(self.shape_1data[1]-window+1))
 
         for img, ix, iy in itertools.product(enumerate(self.X), iterx, itery):
-            rind = refs+ix+8*iy
-            sliced_imgs.append(np.ravel([img[1][i:i+4] for i in rind]))
+            rind = refs + ix + self.shape_1data[0] * iy
+            sliced_imgs.append(np.ravel([img[1][i:i+window] for i in rind]))
+            sliced_target.append(self.y[img[0]])
 
-        return np.c_[sliced_imgs]
+        return np.c_[sliced_imgs], np.c_[sliced_target]
 
-#    def _pseudoRF_mgs(self, X, y):
-#
-#        prf = RandomForestClassifier(n_estimators=self.n_tree, max_features='sqrt')
-#        prf.fit(sliced_X, np.c_[self.y])
-#        pred_proba = prf.predict_proba(self.X)
-#
-#        return pred_proba
+    def _window_slicing_sequence(self, window):
+
+        if any(s < window for s in self.shape_1data):
+             raise ValueError('window must be smaller than the sequence dimension')
+
+        sliced_sqce = []
+        sliced_target = []
+
+        for sqce in enumerate(self.X):
+            slice_sqce = [sqce[1][i:i+window] for i in np.arange(self.shape_1data[0]-window+1)]
+            sliced_sqce.append(np.ravel(slice_sqce))
+            sliced_target.append(self.y[sqce[0]])
+
+        return np.c_[sliced_sqce], np.c_[sliced_target]
+
 
 #    def cascade_forest(self, X, y):
 
