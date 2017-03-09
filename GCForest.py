@@ -21,7 +21,7 @@ class gcForest(object):
         self.y = y
 
         for wdw_size in window:
-            sliced_X = self._window_slicing(wdw_size)
+            sliced_X = self._window_slicing_img(wdw_size)
 #            pred_pseudoRF = self._pseudoRF_mgs(sliced_X, self.y)
 
         return sliced_X
@@ -31,7 +31,7 @@ class gcForest(object):
         if any(s < window for s in self.shape_data):
              raise ValueError('window must be smaller than both dimensions for an image')
 
-        sliced_X = []
+        sliced_imgs = []
         refs = np.arange(0, (self.shape_data[0]-window)*self.shape_data[1], self.shape_data[1])
 
         iterx = list(range(self.shape_data[0]-window+1))
@@ -39,9 +39,9 @@ class gcForest(object):
 
         for img, ix, iy in itertools.product(enumerate(self.X), iterx, itery):
             rind = refs+ix+8*iy
-            sliced_X.append(np.ravel([img[i:i+4] for i in rind]))
+            sliced_imgs.append(np.ravel([img[1][i:i+4] for i in rind]))
 
-        return sliced_X
+        return np.c_[sliced_imgs]
 
 #    def _pseudoRF_mgs(self, X, y):
 #
