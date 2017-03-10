@@ -31,11 +31,12 @@ class gcForest(object):
         self.load_data(X, y, shape_1X)
         mg_pred_prob = []
 
-        for wdw_size in window:
-            wdw_pred_prob = self.window_slicing_pred_prob(window=wdw_size)
-            mg_pred_prob.append(wdw_pred_prob)
+     #   for wdw_size in window:
+     #       wdw_pred_prob = self.window_slicing_pred_prob(window=wdw_size)
+     #       mg_pred_prob.append(wdw_pred_prob)
 
-        setattr(self, 'mgs_features', np.ravel(mg_pred_prob))
+     # mgs_feat = np.reshape(mg_pred_prob, [len(self.X),-1])
+     #   setattr(self, 'mgs_features', mgs_feat) #TODO : correct this line
 
     def window_slicing_pred_prob(self, window, n_tree=30, min_samples=0.1):
 
@@ -47,20 +48,20 @@ class gcForest(object):
 
         if self.shape_1X[1]>1:
             sliced_X, sliced_y = self._window_slicing_img(window=window)
-            prf.fit(sliced_X, sliced_y)
-            crf.fit(sliced_X, sliced_y)
-            for sliceX in sliced_X:
-                pred_prob_prf.append(prf.predict_proba(sliceX))
-                pred_prob_crf.append(crf.predict_proba(sliceX))
+            prf.fit(np.c_[sliced_X], np.c_[sliced_y])
+            crf.fit(np.c_[sliced_X], np.c_[sliced_y])
+            #for sliceX in sliced_X:
+            #    pred_prob_prf.append(prf.predict_proba(sliceX))
+            #    pred_prob_crf.append(crf.predict_proba(sliceX))
         else:
             sliced_X, sliced_y = self._window_slicing_img(window=window)
-            prf.fit(sliced_X, sliced_y)
-            crf.fit(sliced_X, sliced_y)
-            for sliceX in sliced_X:
-                pred_prob_prf.append(prf.predict_proba(sliceX))
-                pred_prob_crf.append(crf.predict_proba(sliceX))
+            prf.fit(np.c_[sliced_X], np.c_[sliced_y])
+            crf.fit(np.c_[sliced_X], np.c_[sliced_y])
+            #for sliceX in sliced_X:
+            #    pred_prob_prf.append(prf.predict_proba(sliceX)) #TODO not good
+            #    pred_prob_crf.append(crf.predict_proba(sliceX))
 
-        return np.concatenate([pred_prob_prf,pred_prob_crf])
+        #return np.concatenate([pred_prob_prf,pred_prob_crf]) #TODO read paper again
 
     def _window_slicing_img(self, window):
 
@@ -79,7 +80,7 @@ class gcForest(object):
             sliced_imgs.append(np.ravel([img[1][i:i+window] for i in rind]))
             sliced_target.append(self.y[img[0]])
 
-        return np.c_[sliced_imgs], np.c_[sliced_target]
+        return sliced_imgs, sliced_target
 
     def _window_slicing_sequence(self, window):
 
@@ -94,7 +95,7 @@ class gcForest(object):
             sliced_sqce.append(np.ravel(slice_sqce))
             sliced_target.append(self.y[sqce[0]])
 
-        return np.c_[sliced_sqce], np.c_[sliced_target]
+        return sliced_sqce, sliced_target
 
 
 #    def cascade_forest(self, X=None, y=None, shape_1X=None, max_layers=5):
@@ -115,7 +116,7 @@ class gcForest(object):
 #                crf = RandomForestClassifier(n_estimators=self.n_tree, max_features=None)
 #                crf.fit(features,self.y)
 
-#    def _cascade_layer(self, X_input, y):
+#    def _cascade_layer(self, cv=3):
 
 #        pseudoRF_pred_proba = []
 #        completeRF_pred_proba = []
