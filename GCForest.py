@@ -98,11 +98,19 @@ class gcForest(object):
 
     def cascade_forest(self, max_layers=5):
 
-        accuracy = np.inf
-#        new_feat = self.mgs_features
+        accuracy = -np.inf
+        feat_arr = getattr(self, 'mgs_features')
 
-#        while accuracy > self.target_accuracy or self.n_layer <= max_layers:
-#            new_feat, acc = self._cascade_layer(new_feat)
+        while accuracy < self.target_accuracy or self.n_layer <= max_layers:
+            self.n_layer += 1
+            prf_crf_pred = self._cascade_layer(feat_arr)
+            layer_pred_prob = np.mean(prf_crf_pred, axis=0)
+            layer_pred = np.argmax(layer_pred_prob, axis=1)
+            accuracy = accuracy_score(y_true=self.y, y_pred=layer_pred)
+            if accuracy < self.target_accuracy :
+                feat_arr = np.concatenate([np.asarray(prf_crf_pred),feat_arr], axis=1)
+
+        return layer_pred
 
     def _cascade_layer(self, feat_arr, cv=3, min_samples=0.1):
 
@@ -112,17 +120,9 @@ class gcForest(object):
         crf = RandomForestClassifier(n_estimators=n_trees, max_features=None,
                                      min_samples_split=min_samples)
 
-        prf_crf_pred, crf_pred =[], []
+        prf_crf_pred, crf_pred = [], []
         for irf in range(n_trees):
             prf_crf_pred.append(cross_val_predict(prf, feat_arr, self.y, cv=cv, method='predict_proba'))
             prf_crf_pred.append(cross_val_predict(crf, feat_arr, self.y, cv=cv, method='predict_proba'))
 
-        layer_pred_prob = np.mean(prf_crf_pred, axis=0)
-        layer_pred = np.argmax(layer_pred_prob, axis=1)
-        accuracy = accuracy_score(y_true=self.y, y_pred=layer_pred)
-
-        return layer_pred_prob, accuracy
-
-
-
-
+        return prf_crf_pred
