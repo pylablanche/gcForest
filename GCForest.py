@@ -2,16 +2,16 @@ import itertools
 import numpy as np
 # import matplotlib.pyplot as plt
 from sklearn.ensemble import RandomForestClassifier
-# from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_val_predict
+from sklearn.metrics import accuracy_score
 
 
 class gcForest(object):
 
-    def __init__(self, n_tree=51, n_pseudoRF=1, n_completeRF=1, target_accuracy=None):
+    def __init__(self, n_tree=51, n_cascadeRF=1, target_accuracy=None):
 
         setattr(self, 'n_layer', 1)
-        setattr(self, 'n_pseudoRF', int(n_pseudoRF))
-        setattr(self, 'n_completeRF', int(n_completeRF))
+        setattr(self, 'n_cascadeRF', int(n_cascadeRF))
         setattr(self, 'n_tree', int(n_tree))
         setattr(self, 'target_accuracy', target_accuracy)
 
@@ -62,18 +62,19 @@ class gcForest(object):
 
     def _window_slicing_img(self, window):
 
-        if any(s < window for s in self.shape_1X):
+        dims = getattr(self, 'shape_1X')
+        if any(s < window for s in dims):
              raise ValueError('window must be smaller than both dimensions for an image')
 
         sliced_imgs = []
         sliced_target = []
-        refs = np.arange(0, (self.shape_1X[0]-window)*self.shape_1X[1], self.shape_1X[1])
+        refs = np.arange(0, (dims[0]-window)*dims[1], dims[1])
 
-        iterx = list(range(self.shape_1X[0]-window+1))
-        itery = list(range(self.shape_1X[1]-window+1))
+        iterx = list(range(dims[0]-window+1))
+        itery = list(range(dims[1]-window+1))
 
         for img, ix, iy in itertools.product(enumerate(self.X), iterx, itery):
-            rind = refs + ix + self.shape_1X[0] * iy
+            rind = refs + ix + dims[0] * iy
             sliced_imgs.append(np.ravel([img[1][i:i+window] for i in rind]))
             sliced_target.append(self.y[img[0]])
 
@@ -81,60 +82,47 @@ class gcForest(object):
 
     def _window_slicing_sequence(self, window):
 
-        if self.shape_1X[0] < window:
+        dims = getattr(self, 'shape_1X')
+        if dims[0] < window:
              raise ValueError('window must be smaller than the sequence dimension')
 
         sliced_sqce = []
         sliced_target = []
 
         for sqce in enumerate(self.X):
-            slice_sqce = [sqce[1][i:i+window] for i in np.arange(self.shape_1X[0]-window+1)]
+            slice_sqce = [sqce[1][i:i+window] for i in np.arange(dims[0]-window+1)]
             sliced_sqce.append(slice_sqce)
-            sliced_target.append(np.repeat(self.y[sqce[0]], self.shape_1X[0]-window+1))
+            sliced_target.append(np.repeat(self.y[sqce[0]], dims[0]-window+1))
 
         return np.reshape(sliced_sqce, [-1,window]), np.ravel(sliced_target)
 
+    def cascade_forest(self, max_layers=5):
 
-#    def cascade_forest(self, X=None, y=None, shape_1X=None, max_layers=5):
-#
-#        self.load_data(X, y, shape_1X, safe=True)
-#        cf_pred_proba = []
-#
-#        if hasattr(self, 'mgs_features'):
-#            features = getattr(self, 'mgs_features')
-#        else:
-#            features = getattr(self, 'X')
-#
+        accuracy = np.inf
+#        new_feat = self.mgs_features
+
 #        while accuracy > self.target_accuracy or self.n_layer <= max_layers:
-#            for i in range(self.n_pseudoRF):
-#                prf = RandomForestClassifier(n_estimators=self.n_tree, max_features='sqrt')
-#                prf.fit(features,self.y)
-#            for i in range(self.n_completeRF):
-#                crf = RandomForestClassifier(n_estimators=self.n_tree, max_features=None)
-#                crf.fit(features,self.y)
+#            new_feat, acc = self._cascade_layer(new_feat)
 
-#    def _cascade_layer(self, cv=3):
+    def _cascade_layer(self, feat_arr, cv=3, min_samples=0.1):
 
-#        pseudoRF_pred_proba = []
-#        completeRF_pred_proba = []
-#        new_features = np.concatenate([self.X, pseudoRF_pred_proba, completeRF_pred_proba])
+        n_trees = getattr(self, 'n_tree')
+        prf = RandomForestClassifier(n_estimators=n_trees, max_features='sqrt',
+                                     min_samples_split=min_samples)
+        crf = RandomForestClassifier(n_estimators=n_trees, max_features=None,
+                                     min_samples_split=min_samples)
 
-#        return new_features, accuracy
+        prf_crf_pred, crf_pred =[], []
+        for irf in range(n_trees):
+            prf_crf_pred.append(cross_val_predict(prf, feat_arr, self.y, cv=cv, method='predict_proba'))
+            prf_crf_pred.append(cross_val_predict(crf, feat_arr, self.y, cv=cv, method='predict_proba'))
 
-#    def _pseudoRF_casc(self, X, y):
-#
-#        prf = RandomForestClassifier(n_estimators=self.n_tree, max_features='sqrt')
-#        prf.fit(X,y)
-#        score = cross_val_score(estimator=prf, X=X, y=y, cv=3)
-#        pred = prf.predict_proba(X)
-#
-#        return pred, score
+        layer_pred_prob = np.mean(prf_crf_pred, axis=0)
+        layer_pred = np.argmax(layer_pred_prob, axis=1)
+        accuracy = accuracy_score(y_true=self.y, y_pred=layer_pred)
+
+        return layer_pred_prob, accuracy
 
 
-#    def _completeRF_casc(self, X, y):
-#
-#        crf = RandomForestClassifier(n_estimators=self.n_tree, max_features=None)
-#        score = cross_val_score(estimator=crf, X=X, y=y, cv=3)
-#        pred = crf.predict_proba(X)
-#
-#        return pred, score
+
+
