@@ -25,18 +25,17 @@ class gcForest(object):
 
     def mg_scanning(self, X, y, shape_1X, window=None):
 
-        if len(shape_1X)<2:
+        if len(shape_1X) < 2:
             raise ValueError('shape parameter must be a tuple')
 
         self.load_data(X, y, shape_1X)
-        mg_pred_prob = []
+        mgs_pred_prob = []
 
         for wdw_size in window:
             wdw_pred_prob = self.window_slicing_pred_prob(window=wdw_size)
-            mg_pred_prob.append(wdw_pred_prob)
+            mgs_pred_prob.append(wdw_pred_prob)
 
-     # mgs_feat = np.reshape(mg_pred_prob, [len(self.X),-1])
-     #   setattr(self, 'mgs_features', mgs_feat) #TODO : correct this line
+        setattr(self, 'mgs_features', np.concatenate(mgs_pred_prob, axis=1))
 
     def window_slicing_pred_prob(self, window, n_tree=30, min_samples=0.1):
 
@@ -48,12 +47,11 @@ class gcForest(object):
         if self.shape_1X[1] > 1:
             print('Slicing Images...')
             sliced_X, sliced_y = self._window_slicing_img(window=window)
-            print('Training Random Forests...')
         else:
             print('Slicing Sequence...')
             sliced_X, sliced_y = self._window_slicing_sequence(window=window)
-            print('Training Random Forests...')
 
+        print('Training Random Forests...')
         prf.fit(sliced_X, sliced_y)
         crf.fit(sliced_X, sliced_y)
         pred_prob_prf = prf.predict_proba(sliced_X)
@@ -94,7 +92,7 @@ class gcForest(object):
             sliced_sqce.append(slice_sqce)
             sliced_target.append(np.repeat(self.y[sqce[0]], self.shape_1X[0]-window+1))
 
-        return np.reshape(sliced_sqce, [-1,2]), np.ravel(sliced_target)
+        return np.reshape(sliced_sqce, [-1,window]), np.ravel(sliced_target)
 
 
 #    def cascade_forest(self, X=None, y=None, shape_1X=None, max_layers=5):
