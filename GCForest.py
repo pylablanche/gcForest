@@ -31,42 +31,36 @@ class gcForest(object):
         self.load_data(X, y, shape_1X)
         mg_pred_prob = []
 
-     #   for wdw_size in window:
-     #       wdw_pred_prob = self.window_slicing_pred_prob(window=wdw_size)
-     #       mg_pred_prob.append(wdw_pred_prob)
+        for wdw_size in window:
+            wdw_pred_prob = self.window_slicing_pred_prob(window=wdw_size)
+            mg_pred_prob.append(wdw_pred_prob)
 
      # mgs_feat = np.reshape(mg_pred_prob, [len(self.X),-1])
      #   setattr(self, 'mgs_features', mgs_feat) #TODO : correct this line
 
     def window_slicing_pred_prob(self, window, n_tree=30, min_samples=0.1):
 
-        pred_prob_prf, pred_prob_crf = [], []
         prf = RandomForestClassifier(n_estimators=n_tree, max_features='sqrt',
                                      min_samples_split=min_samples)
         crf = RandomForestClassifier(n_estimators=n_tree, max_features=None,
                                      min_samples_split=min_samples)
 
         if self.shape_1X[1] > 1:
-            print('Slicing Sequence...')
+            print('Slicing Images...')
             sliced_X, sliced_y = self._window_slicing_img(window=window)
             print('Training Random Forests...')
-            prf.fit(sliced_X, sliced_y)
-            crf.fit(sliced_X, sliced_y)
-            #for sliceX in sliced_X:
-            #    pred_prob_prf.append(prf.predict_proba(sliceX))
-            #    pred_prob_crf.append(crf.predict_proba(sliceX))
         else:
-            print('Slicing Images...')
+            print('Slicing Sequence...')
             sliced_X, sliced_y = self._window_slicing_sequence(window=window)
             print('Training Random Forests...')
-            prf.fit(sliced_X, sliced_y)
-            crf.fit(sliced_X, sliced_y)
-            #for sliceX in sliced_X:
-            #    pred_prob_prf.append(prf.predict_proba(sliceX))
-            #    pred_prob_crf.append(crf.predict_proba(sliceX))
 
-        return sliced_X, sliced_y
-        #return np.concatenate([pred_prob_prf,pred_prob_crf]) #TODO read paper again
+        prf.fit(sliced_X, sliced_y)
+        crf.fit(sliced_X, sliced_y)
+        pred_prob_prf = prf.predict_proba(sliced_X)
+        pred_prob_crf = crf.predict_proba(sliced_X)
+        pred_prob = np.c_[pred_prob_prf, pred_prob_crf]
+
+        return pred_prob.reshape([np.shape(self.X)[0],-1])
 
     def _window_slicing_img(self, window):
 
