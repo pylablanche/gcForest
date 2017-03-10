@@ -46,21 +46,26 @@ class gcForest(object):
         crf = RandomForestClassifier(n_estimators=n_tree, max_features=None,
                                      min_samples_split=min_samples)
 
-        if self.shape_1X[1]>1:
+        if self.shape_1X[1] > 1:
+            print('Slicing Sequence...')
             sliced_X, sliced_y = self._window_slicing_img(window=window)
-            prf.fit(np.c_[sliced_X], np.c_[sliced_y])
-            crf.fit(np.c_[sliced_X], np.c_[sliced_y])
+            print('Training Random Forests...')
+            prf.fit(sliced_X, sliced_y)
+            crf.fit(sliced_X, sliced_y)
             #for sliceX in sliced_X:
             #    pred_prob_prf.append(prf.predict_proba(sliceX))
             #    pred_prob_crf.append(crf.predict_proba(sliceX))
         else:
-            sliced_X, sliced_y = self._window_slicing_img(window=window)
-            prf.fit(np.c_[sliced_X], np.c_[sliced_y])
-            crf.fit(np.c_[sliced_X], np.c_[sliced_y])
+            print('Slicing Images...')
+            sliced_X, sliced_y = self._window_slicing_sequence(window=window)
+            print('Training Random Forests...')
+            prf.fit(sliced_X, sliced_y)
+            crf.fit(sliced_X, sliced_y)
             #for sliceX in sliced_X:
-            #    pred_prob_prf.append(prf.predict_proba(sliceX)) #TODO not good
+            #    pred_prob_prf.append(prf.predict_proba(sliceX))
             #    pred_prob_crf.append(crf.predict_proba(sliceX))
 
+        return sliced_X, sliced_y
         #return np.concatenate([pred_prob_prf,pred_prob_crf]) #TODO read paper again
 
     def _window_slicing_img(self, window):
@@ -80,11 +85,11 @@ class gcForest(object):
             sliced_imgs.append(np.ravel([img[1][i:i+window] for i in rind]))
             sliced_target.append(self.y[img[0]])
 
-        return sliced_imgs, sliced_target
+        return np.asarray(sliced_imgs), np.asarray(sliced_target)
 
     def _window_slicing_sequence(self, window):
 
-        if any(s < window for s in self.shape_1X):
+        if self.shape_1X[0] < window:
              raise ValueError('window must be smaller than the sequence dimension')
 
         sliced_sqce = []
@@ -92,10 +97,10 @@ class gcForest(object):
 
         for sqce in enumerate(self.X):
             slice_sqce = [sqce[1][i:i+window] for i in np.arange(self.shape_1X[0]-window+1)]
-            sliced_sqce.append(np.ravel(slice_sqce))
-            sliced_target.append(self.y[sqce[0]])
+            sliced_sqce.append(slice_sqce)
+            sliced_target.append(np.repeat(self.y[sqce[0]], self.shape_1X[0]-window+1))
 
-        return sliced_sqce, sliced_target
+        return np.reshape(sliced_sqce, [-1,2]), np.ravel(sliced_target)
 
 
 #    def cascade_forest(self, X=None, y=None, shape_1X=None, max_layers=5):
