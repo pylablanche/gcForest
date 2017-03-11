@@ -7,6 +7,7 @@ from sklearn.metrics import accuracy_score
 
 # noinspection PyUnboundLocalVariable
 class gcForest(object):
+
     def __init__(self, n_tree=51, n_cascadeRF=1, target_accuracy=None):
 
         setattr(self, 'n_layer', 0)
@@ -23,12 +24,12 @@ class gcForest(object):
             elif not safe:
                 setattr(self, attr, eval(attr))
 
-    def mg_scanning(self, X, y, shape_1X, window=None):
+    def mg_scanning(self, X=None, y=None, shape_1X=None, window=None):
 
-        if len(shape_1X) < 2:
+        self.load_data(X, y, shape_1X, safe=True)
+        if len(self.shape_1X) < 2:
             raise ValueError('shape parameter must be a tuple')
 
-        self.load_data(X, y, shape_1X)
         mgs_pred_prob = []
 
         for wdw_size in window:
@@ -68,7 +69,7 @@ class gcForest(object):
 
         sliced_imgs = []
         sliced_target = []
-        refs = np.arange(0, (dims[0] - window) * dims[1], dims[1])
+        refs = np.arange(0, window * dims[1], dims[0])
 
         iterx = list(range(dims[0] - window + 1))
         itery = list(range(dims[1] - window + 1))
@@ -96,15 +97,19 @@ class gcForest(object):
 
         return np.reshape(sliced_sqce, [-1, window]), np.ravel(sliced_target)
 
-    def cascade_forest(self, max_layers=5):
+    def cascade_forest(self, max_layers=5, target_accuracy=None):
 
         accuracy = -np.inf
-        tgt_acc = getattr(self, 'target_accuracy')
+        if not target_accuracy:
+            tgt_acc = getattr(self, 'target_accuracy')
+        else:
+            tgt_acc = target_accuracy
         mgs_feat = getattr(self, 'mgs_features')
         feat_arr = mgs_feat
 
-        while accuracy < tgt_acc or self.n_layer <= max_layers:
+        while accuracy < tgt_acc and self.n_layer <= max_layers:
             self.n_layer += 1
+            print('Adding Layer, n_layer={}'.format(self.n_layer))
             prf_crf_pred = self._cascade_layer(feat_arr)
             layer_pred_prob = np.mean(prf_crf_pred, axis=0)
             layer_pred = np.argmax(layer_pred_prob, axis=1)
@@ -119,13 +124,14 @@ class gcForest(object):
     def _cascade_layer(self, feat_arr, cv=3, min_samples=0.1):
 
         n_trees = getattr(self, 'n_tree')
+        n_cascadeRF = getattr(self, 'n_cascadeRF')
         prf = RandomForestClassifier(n_estimators=n_trees, max_features='sqrt',
                                      min_samples_split=min_samples)
         crf = RandomForestClassifier(n_estimators=n_trees, max_features=None,
                                      min_samples_split=min_samples)
 
         prf_crf_pred, crf_pred = [], []
-        for irf in range(n_trees):
+        for irf in range(n_cascadeRF):
             prf_crf_pred.append(cross_val_predict(prf, feat_arr, self.y, cv=cv, method='predict_proba'))
             prf_crf_pred.append(cross_val_predict(crf, feat_arr, self.y, cv=cv, method='predict_proba'))
 
