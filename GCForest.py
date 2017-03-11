@@ -8,12 +8,26 @@ from sklearn.metrics import accuracy_score
 # noinspection PyUnboundLocalVariable
 class gcForest(object):
 
-    def __init__(self, n_tree=51, n_cascadeRF=1, target_accuracy=None):
+    def __init__(self, n_mgsRFtree=30, window=None,
+                 n_cascadeRF=2, n_cascadeRFtree=101):
 
         setattr(self, 'n_layer', 0)
         setattr(self, 'n_cascadeRF', int(n_cascadeRF))
-        setattr(self, 'n_tree', int(n_tree))
-        setattr(self, 'target_accuracy', target_accuracy)
+        setattr(self, 'n_mgsRFtree', int(n_mgsRFtree))
+        setattr(self, 'n_cascadeRFtree', int(n_cascadeRFtree))
+        setattr(self, 'window', window)
+
+    def fit(self, X, y, shape_1X):
+
+        self.load_data(X, y, shape_1X)
+        self.mg_scanning(window=getattr(self, 'window'))
+        self.cascade_forest()
+
+#    def predict(self, X):
+#
+#        self.mg_scanning()
+#        self.cascade_forest()
+#        return None
 
     # noinspection PyUnusedLocal
     def load_data(self, X, y, shape_1X, safe=False):
@@ -24,9 +38,8 @@ class gcForest(object):
             elif not safe:
                 setattr(self, attr, eval(attr))
 
-    def mg_scanning(self, X=None, y=None, shape_1X=None, window=None):
+    def mg_scanning(self, window=None):
 
-        self.load_data(X, y, shape_1X, safe=True)
         if len(self.shape_1X) < 2:
             raise ValueError('shape parameter must be a tuple')
 
