@@ -24,7 +24,8 @@ class gcForest(object):
         if np.shape(X)[0] != len(y):
             raise ValueError('Sizes of y and X do not match.')
         setattr(self, 'n_samples', np.shape(X)[0])
-        mgs_X = self.mg_scanning(X, y, shape_1X)
+        setattr(self, 'shape_1X', shape_1X)
+        mgs_X = self.mg_scanning(X, y)
         self.cascade_forest(mgs_X, y)
 
 #    def predict(self, X):
@@ -33,20 +34,21 @@ class gcForest(object):
 #        self.cascade_forest()
 #        return None
 
-    def mg_scanning(self, X, y, shape_1X):
+    def mg_scanning(self, X, y=None):
 
+        shape_1X = getattr(self, 'shape_1X')
         if len(shape_1X) < 2:
             raise ValueError('shape parameter must be a tuple')
 
         mgs_pred_prob = []
 
         for wdw_size in getattr(self, 'window'):
-            wdw_pred_prob = self.window_slicing_pred_prob(X, y, shape_1X, window=wdw_size)
+            wdw_pred_prob = self.window_slicing_pred_prob(X, wdw_size, shape_1X, y=y)
             mgs_pred_prob.append(wdw_pred_prob)
 
         return np.concatenate(mgs_pred_prob, axis=1)
 
-    def window_slicing_pred_prob(self, X, y, shape_1X, window):
+    def window_slicing_pred_prob(self, X, window, shape_1X, y=None):
 
         n_tree = getattr(self, 'n_mgsRFtree')
         min_samples = getattr(self, 'min_samples')
@@ -57,10 +59,10 @@ class gcForest(object):
 
         if shape_1X[1] > 1:
             print('Slicing Images...')
-            sliced_X, sliced_y = self._window_slicing_img(X, y, shape_1X, window=window)
+            sliced_X, sliced_y = self._window_slicing_img(X, window, shape_1X, y=y)
         else:
             print('Slicing Sequence...')
-            sliced_X, sliced_y = self._window_slicing_sequence(X, y, shape_1X, window=window)
+            sliced_X, sliced_y = self._window_slicing_sequence(X, window, shape_1X, y=y)
 
         print('Training Random Forests...')
         prf.fit(sliced_X, sliced_y)
@@ -71,7 +73,7 @@ class gcForest(object):
 
         return pred_prob.reshape([getattr(self, 'n_samples'), -1])
 
-    def _window_slicing_img(self, X, y, shape_1X, window):
+    def _window_slicing_img(self, X, window, shape_1X, y=None):
 
         if any(s < window for s in shape_1X):
             raise ValueError('window must be smaller than both dimensions for an image')
@@ -90,7 +92,7 @@ class gcForest(object):
 
         return np.asarray(sliced_imgs), np.asarray(sliced_target)
 
-    def _window_slicing_sequence(self, X, y, shape_1X, window):
+    def _window_slicing_sequence(self, X, window, shape_1X, y=None):
 
         if shape_1X[0] < window:
             raise ValueError('window must be smaller than the sequence dimension')
@@ -109,16 +111,16 @@ class gcForest(object):
 
         # Creating first layer
         prf_crf_pred = self._cascade_layer(X, y)
-        _, accuracy_ref = self._layer_pred_acc(prf_crf_pred)
+        _, accuracy_ref = self._layer_pred_acc(prf_crf_pred, y)
         feat_arr = self._create_feat_arr(X, prf_crf_pred)
 
         prf_crf_pred = self._cascade_layer(X, y)
-        layer_pred, accuracy_layer = self._layer_pred_acc(prf_crf_pred)
+        layer_pred, accuracy_layer = self._layer_pred_acc(prf_crf_pred, y)
         feat_arr = self._create_feat_arr(feat_arr, prf_crf_pred)
 
         while (accuracy_ref * (1.0 + tol)) < accuracy_layer and self.n_layer <= max_layers:
             prf_crf_pred = self._cascade_layer(feat_arr, y)
-            layer_pred, accuracy_layer = self._layer_pred_acc(prf_crf_pred)
+            layer_pred, accuracy_layer = self._layer_pred_acc(prf_crf_pred, y)
 
         return layer_pred
 
@@ -136,8 +138,8 @@ class gcForest(object):
 
         prf_crf_pred, crf_pred = [], []
         for irf in range(n_cascadeRF):
-            #prf.fit(X, y)
-            #crf.fit(X, y)
+            # prf.fit(X, y)
+            # crf.fit(X, y)
             prf_crf_pred.append(cross_val_predict(prf, X, y, cv=cv, method='predict_proba'))
             prf_crf_pred.append(cross_val_predict(crf, X, y, cv=cv, method='predict_proba'))
 
@@ -150,7 +152,7 @@ class gcForest(object):
 
         return np.concatenate([add_feat, X], axis=1)
 
-    def _layer_pred_acc(self, prf_crf_pred):
+    def _layer_pred_acc(self, prf_crf_pred, y):
 
         layer_pred_prob = np.mean(prf_crf_pred, axis=0)
         layer_pred = np.argmax(layer_pred_prob, axis=1)
