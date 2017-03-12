@@ -66,7 +66,7 @@ class gcForest(object):
                                          min_samples_split=min_samples)
             crf = RandomForestClassifier(n_estimators=n_tree, max_features=None,
                                          min_samples_split=min_samples)
-            print('Training Random Forests...')
+            print('Training MGS Random Forests...')
             prf.fit(sliced_X, sliced_y)
             crf.fit(sliced_X, sliced_y)
             setattr(self, '_mgsprf', prf)
@@ -114,7 +114,7 @@ class gcForest(object):
             slice_sqce = [sqce[1][i:i + window] for i in np.arange(shape_1X[0] - window + 1)]
             sliced_sqce.append(slice_sqce)
             if y is not None:
-            sliced_target.append(np.repeat(y[sqce[0]], shape_1X[0] - window + 1))
+                sliced_target.append(np.repeat(y[sqce[0]], shape_1X[0] - window + 1))
 
         return np.reshape(sliced_sqce, [-1, window]), np.ravel(sliced_target)
 
@@ -126,7 +126,7 @@ class gcForest(object):
             _, accuracy_ref = self._layer_pred_acc(prf_crf_pred, y)
             feat_arr = self._create_feat_arr(X, prf_crf_pred)
             self.n_layer += 1
-            prf_crf_pred = self._cascade_layer(X, y)
+            prf_crf_pred = self._cascade_layer(feat_arr, y)
             layer_pred, accuracy_layer = self._layer_pred_acc(prf_crf_pred, y)
             feat_arr = self._create_feat_arr(X, prf_crf_pred)
             while (accuracy_ref * (1.0 + tol)) < accuracy_layer and self.n_layer <= max_layers:
@@ -135,13 +135,12 @@ class gcForest(object):
                 layer_pred, accuracy_layer = self._layer_pred_acc(prf_crf_pred, y)
                 feat_arr = self._create_feat_arr(X, prf_crf_pred)
 
-
         elif y is None:
             at_layer = 1
             prf_crf_pred = self._cascade_layer(X, layer=at_layer)
             layer_pred = self._layer_pred_acc(prf_crf_pred)
             feat_arr = self._create_feat_arr(X, prf_crf_pred)
-            while at_layer <= getattr(self, 'n_layer'):
+            while at_layer < getattr(self, 'n_layer'):
                 at_layer += 1
                 prf_crf_pred = self._cascade_layer(feat_arr, layer=at_layer)
                 layer_pred = self._layer_pred_acc(prf_crf_pred)
@@ -169,7 +168,7 @@ class gcForest(object):
                 setattr(self, '_cascrf{}_{}'.format(self.n_layer, irf), crf)
                 prf_crf_pred.append(cross_val_predict(prf, X, y, cv=cv, method='predict_proba'))
                 prf_crf_pred.append(cross_val_predict(crf, X, y, cv=cv, method='predict_proba'))
-        elif y is None and hasattr(self, '_cascprf'.format(layer, 0)):
+        elif y is None:
             for irf in range(n_cascadeRF):
                 prf = getattr(self, '_casprf{}_{}'.format(layer, irf))
                 crf = getattr(self, '_cascrf{}_{}'.format(layer, irf))
