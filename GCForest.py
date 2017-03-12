@@ -8,7 +8,7 @@ from sklearn.metrics import accuracy_score
 # noinspection PyUnboundLocalVariable
 class gcForest(object):
 
-    def __init__(self, n_mgsRFtree=30, window=None,
+    def __init__(self, n_mgsRFtree=30, window=[0],
                  n_cascadeRF=2, n_cascadeRFtree=101, min_samples=0.05):
 
         setattr(self, 'n_layer', 0)
@@ -113,6 +113,7 @@ class gcForest(object):
         for sqce in enumerate(X):
             slice_sqce = [sqce[1][i:i + window] for i in np.arange(shape_1X[0] - window + 1)]
             sliced_sqce.append(slice_sqce)
+            if y is not None:
             sliced_target.append(np.repeat(y[sqce[0]], shape_1X[0] - window + 1))
 
         return np.reshape(sliced_sqce, [-1, window]), np.ravel(sliced_target)
