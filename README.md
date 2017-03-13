@@ -7,5 +7,4 @@ The syntax uses the scikit learn style with a .fit() function to train the algor
 
 So far it only works as a Classifier and does not include the following :
 
-- Growth/evaluation split when training the Cascade Layers
 - No parallelisation of the code has been done yet
