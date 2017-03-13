@@ -4,9 +4,9 @@ Author : Pierre-Yves Lablanche
 Affiliation : African Institute for Mathematical Sciences - South Africa
              Stellenbosch University - South Africa
 
-License : GPL
+License :
 
-Status : Uner Development
+Status : Under Development
 
 Description :
 Implementation of the gcForest algorithm in python3.
