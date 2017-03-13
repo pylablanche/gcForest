@@ -33,7 +33,7 @@ class gcForest(object):
         :param window: int (default=[0])
             List of window sizes to use during Multi Grain Scanning.
 
-        :param cascade_split: float or int (default=0.2)
+        :param cascade_test_size: float or int (default=0.2)
             Split fraction or absolute number for cascade training set splitting.
 
         :param n_cascadeRF: int (default=2)
@@ -80,7 +80,7 @@ class gcForest(object):
         setattr(self, 'n_samples', np.shape(X)[0])
         setattr(self, 'shape_1X', shape_1X)
         mgs_X = self.mg_scanning(X, y)
-        self.cascade_forest(mgs_X, y)
+        _ = self.cascade_forest(mgs_X, y)
 
     def predict(self, X):
         """ Predict the class of unknown samples X.
@@ -94,7 +94,9 @@ class gcForest(object):
         """
 
         mgs_X = self.mg_scanning(X)
-        predictions = self.cascade_forest(mgs_X)
+        cascade_all_pred_prob = self.cascade_forest(mgs_X)
+        cascade_pred_prob = np.mean(cascade_all_pred_prob, axis=0)
+        predictions = np.argmax(cascade_pred_prob, axis=1)
 
         return predictions
 
@@ -276,7 +278,7 @@ class gcForest(object):
             self.n_layer += 1
             prf_crf_pred_ref = self._cascade_layer(X_train, y_train)
             accuracy_ref = self._cascade_evaluation(X_test, y_test)
-            feat_arr = self._create_feat_arr(X, prf_crf_pred_ref)
+            feat_arr = self._create_feat_arr(X_train, prf_crf_pred_ref)
 
             self.n_layer += 1
             prf_crf_pred_layer = self._cascade_layer(feat_arr, y_train)
@@ -285,7 +287,7 @@ class gcForest(object):
             while accuracy_layer > (accuracy_ref * (1.0 + tol)) and self.n_layer <= max_layers:
                 accuracy_ref = accuracy_layer
                 prf_crf_pred_ref = prf_crf_pred_layer
-                feat_arr = self._create_feat_arr(X, prf_crf_pred_ref)
+                feat_arr = self._create_feat_arr(X_train, prf_crf_pred_ref)
                 self.n_layer += 1
                 prf_crf_pred_layer = self._cascade_layer(feat_arr, y_train)
                 accuracy_layer = self._cascade_evaluation(X_test, y_test)
@@ -298,10 +300,7 @@ class gcForest(object):
                 feat_arr = self._create_feat_arr(X, prf_crf_pred_ref)
                 prf_crf_pred_ref = self._cascade_layer(feat_arr, layer=at_layer)
 
-        cascade_pred_prob = np.mean(prf_crf_pred_ref, axis=0)
-        cascade_pred = np.argmax(cascade_pred_prob, axis=1)
-
-        return cascade_pred
+        return prf_crf_pred_ref
 
     def _cascade_layer(self, X, y=None, cv=3, layer=0):
         """ Cascade layer containing Random Forest estimators.
@@ -337,8 +336,8 @@ class gcForest(object):
         if y is not None:
             print('Adding/Training Layer, n_layer={}'.format(self.n_layer))
             for irf in range(n_cascadeRF):
-                prf_crf_pred.append(cross_val_predict(prf, X, y=y, cv=cv))
-                prf_crf_pred.append(cross_val_predict(crf, X, y=y, cv=cv))
+                prf_crf_pred.append(cross_val_predict(prf, X, y=y, cv=cv, method='predict_proba'))
+                prf_crf_pred.append(cross_val_predict(crf, X, y=y, cv=cv, method='predict_proba'))
                 prf.fit(X, y)
                 crf.fit(X, y)
                 setattr(self, '_casprf{}_{}'.format(self.n_layer, irf), prf)
@@ -355,19 +354,21 @@ class gcForest(object):
     def _cascade_evaluation(self, X_test, y_test):
         """ Evaluate the accuracy of the cascade using X and y.
 
-        :param X: np.array
+        :param X_test: np.array
             Array containing the test input samples.
             Must be of the same shape as training data.
 
-        :param y: np.array
+        :param y_test: np.array
             Test target values.
 
         :return: float
             the cascade accuracy.
         """
 
-        casc_pred = self.cascade_forest(X_test)
+        casc_pred_prob = np.mean(self.cascade_forest(X_test), axis=0)
+        casc_pred = np.argmax(casc_pred_prob, axis=1)
         casc_accuracy = accuracy_score(y_true=y_test, y_pred=casc_pred)
+        print('Layer validation accuracy = {}'.format(casc_accuracy))
 
         return casc_accuracy
 
@@ -388,7 +389,7 @@ class gcForest(object):
         """
 
         swap_pred = np.swapaxes(prf_crf_pred, 0, 1)
-        add_feat = swap_pred.reshape([getattr(self, 'n_samples'), -1])
+        add_feat = swap_pred.reshape([np.shape(X)[0], -1])
         feat_arr = np.concatenate([add_feat, X], axis=1)
 
         return feat_arr
