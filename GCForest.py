@@ -16,14 +16,14 @@ Uses the scikit learn syntax .fit() .predict()
 import itertools
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import cross_val_predict
+from sklearn.model_selection import StratifiedShuffleSplit, train_test_split
 from sklearn.metrics import accuracy_score
 
 
 # noinspection PyUnboundLocalVariable
 class gcForest(object):
 
-    def __init__(self, n_mgsRFtree=30, window=[0],
+    def __init__(self, n_mgsRFtree=30, window=[0], cascade_test_size=0.2,
                  n_cascadeRF=2, n_cascadeRFtree=101, min_samples=0.05):
         """ gcForest Classifier.
 
@@ -32,6 +32,9 @@ class gcForest(object):
 
         :param window: int (default=[0])
             List of window sizes to use during Multi Grain Scanning.
+
+        :param cascade_split: float or int (default=0.2)
+            Split fraction or absolute number for cascade training set splitting.
 
         :param n_cascadeRF: int (default=2)
             Number of Random Forests in a cascade layer.
@@ -52,6 +55,7 @@ class gcForest(object):
         setattr(self, 'n_samples', 0)
         setattr(self, 'n_cascadeRF', int(n_cascadeRF))
         setattr(self, 'window', window)
+        setattr(self, 'cascade_test_size', cascade_test_size)
         setattr(self, 'n_mgsRFtree', int(n_mgsRFtree))
         setattr(self, 'n_cascadeRFtree', int(n_cascadeRFtree))
         setattr(self, 'min_samples', min_samples)
@@ -264,33 +268,40 @@ class gcForest(object):
             1D array containing the predicted class for each input sample.
         """
 
+        test_size = getattr(self, 'cascade_test_size')
+
         if y is not None:
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size)
+
             self.n_layer += 1
-            prf_crf_pred = self._cascade_layer(X, y)
-            _, accuracy_ref = self._layer_pred_acc(prf_crf_pred, y)
-            feat_arr = self._create_feat_arr(X, prf_crf_pred)
+            prf_crf_pred_ref = self._cascade_layer(X_train, y_train)
+            accuracy_ref = self._cascade_evaluation(X_test, y_test)
+            feat_arr = self._create_feat_arr(X, prf_crf_pred_ref)
+
             self.n_layer += 1
-            prf_crf_pred = self._cascade_layer(feat_arr, y)
-            layer_pred, accuracy_layer = self._layer_pred_acc(prf_crf_pred, y)
-            feat_arr = self._create_feat_arr(X, prf_crf_pred)
-            while (accuracy_ref * (1.0 + tol)) < accuracy_layer and self.n_layer <= max_layers:
+            prf_crf_pred_layer = self._cascade_layer(feat_arr, y_train)
+            accuracy_layer = self._cascade_evaluation(X_test, y_test)
+
+            while accuracy_layer > (accuracy_ref * (1.0 + tol)) and self.n_layer <= max_layers:
+                accuracy_ref = accuracy_layer
+                prf_crf_pred_ref = prf_crf_pred_layer
+                feat_arr = self._create_feat_arr(X, prf_crf_pred_ref)
                 self.n_layer += 1
-                prf_crf_pred = self._cascade_layer(feat_arr, y)
-                layer_pred, accuracy_layer = self._layer_pred_acc(prf_crf_pred, y)
-                feat_arr = self._create_feat_arr(X, prf_crf_pred)
+                prf_crf_pred_layer = self._cascade_layer(feat_arr, y_train)
+                accuracy_layer = self._cascade_evaluation(X_test, y_test)
 
         elif y is None:
             at_layer = 1
-            prf_crf_pred = self._cascade_layer(X, layer=at_layer)
-            layer_pred = self._layer_pred_acc(prf_crf_pred)
-            feat_arr = self._create_feat_arr(X, prf_crf_pred)
+            prf_crf_pred_ref = self._cascade_layer(X, layer=at_layer)
             while at_layer < getattr(self, 'n_layer'):
                 at_layer += 1
-                prf_crf_pred = self._cascade_layer(feat_arr, layer=at_layer)
-                layer_pred = self._layer_pred_acc(prf_crf_pred)
-                feat_arr = self._create_feat_arr(X, prf_crf_pred)
+                feat_arr = self._create_feat_arr(X, prf_crf_pred_ref)
+                prf_crf_pred_ref = self._cascade_layer(feat_arr, layer=at_layer)
 
-        return layer_pred
+        cascade_pred_prob = np.mean(prf_crf_pred_ref, axis=0)
+        cascade_pred = np.argmax(cascade_pred_prob, axis=1)
+
+        return cascade_pred
 
     def _cascade_layer(self, X, y=None, cv=3, layer=0):
         """ Cascade layer containing Random Forest estimators.
@@ -322,16 +333,16 @@ class gcForest(object):
         crf = RandomForestClassifier(n_estimators=n_tree, max_features=None,
                                      min_samples_split=min_samples)
 
-        prf_crf_pred, crf_pred = [], []
+        prf_crf_pred = []
         if y is not None:
             print('Adding/Training Layer, n_layer={}'.format(self.n_layer))
             for irf in range(n_cascadeRF):
+                prf_crf_pred.append(self._kfold_training(prf, X, y, cv=cv))
+                prf_crf_pred.append(self._kfold_training(crf, X, y, cv=cv))
                 prf.fit(X, y)
                 crf.fit(X, y)
                 setattr(self, '_casprf{}_{}'.format(self.n_layer, irf), prf)
                 setattr(self, '_cascrf{}_{}'.format(self.n_layer, irf), crf)
-                prf_crf_pred.append(cross_val_predict(prf, X, y, cv=cv, method='predict_proba'))
-                prf_crf_pred.append(cross_val_predict(crf, X, y, cv=cv, method='predict_proba'))
         elif y is None:
             for irf in range(n_cascadeRF):
                 prf = getattr(self, '_casprf{}_{}'.format(layer, irf))
@@ -340,6 +351,24 @@ class gcForest(object):
                 prf_crf_pred.append(crf.predict_proba(X))
 
         return prf_crf_pred
+
+    def _kfold_training(self, rft, X, y, cv):
+
+        kfold_pred = []
+        skf = StratifiedShuffleSplit(n_splits=cv, test_size=0.33)
+        for train_ind, test_ind in skf.fit(X, y):
+            rft.fit(X[train_ind], y[train_ind])
+            kfold_pred.append(rft.predict_proba(X[test_ind]))
+
+        return np.mean(kfold_pred, axis=0)
+
+    def _cascade_evaluation(self, X, y):
+
+        casc_pred = self.cascade_forest(X)
+        casc_accuracy = accuracy_score(y_true=y, y_pred=casc_pred)
+
+        return casc_accuracy
+
 
     def _create_feat_arr(self, X, prf_crf_pred):
         """ Concatenate the original feature vector with the predicition probabilities
