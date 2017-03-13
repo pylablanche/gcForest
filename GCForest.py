@@ -16,7 +16,7 @@ Uses the scikit learn syntax .fit() .predict()
 import itertools
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import StratifiedShuffleSplit, train_test_split
+from sklearn.model_selection import cross_val_predict, train_test_split
 from sklearn.metrics import accuracy_score
 
 
@@ -337,8 +337,8 @@ class gcForest(object):
         if y is not None:
             print('Adding/Training Layer, n_layer={}'.format(self.n_layer))
             for irf in range(n_cascadeRF):
-                prf_crf_pred.append(self._kfold_training(prf, X, y, cv=cv))
-                prf_crf_pred.append(self._kfold_training(crf, X, y, cv=cv))
+                prf_crf_pred.append(cross_val_predict(prf, X, y=y, cv=cv))
+                prf_crf_pred.append(cross_val_predict(crf, X, y=y, cv=cv))
                 prf.fit(X, y)
                 crf.fit(X, y)
                 setattr(self, '_casprf{}_{}'.format(self.n_layer, irf), prf)
@@ -352,20 +352,22 @@ class gcForest(object):
 
         return prf_crf_pred
 
-    def _kfold_training(self, rft, X, y, cv):
+    def _cascade_evaluation(self, X_test, y_test):
+        """ Evaluate the accuracy of the cascade using X and y.
 
-        kfold_pred = []
-        skf = StratifiedShuffleSplit(n_splits=cv, test_size=0.33)
-        for train_ind, test_ind in skf.fit(X, y):
-            rft.fit(X[train_ind], y[train_ind])
-            kfold_pred.append(rft.predict_proba(X[test_ind]))
+        :param X: np.array
+            Array containing the test input samples.
+            Must be of the same shape as training data.
 
-        return np.mean(kfold_pred, axis=0)
+        :param y: np.array
+            Test target values.
 
-    def _cascade_evaluation(self, X, y):
+        :return: float
+            the cascade accuracy.
+        """
 
-        casc_pred = self.cascade_forest(X)
-        casc_accuracy = accuracy_score(y_true=y, y_pred=casc_pred)
+        casc_pred = self.cascade_forest(X_test)
+        casc_accuracy = accuracy_score(y_true=y_test, y_pred=casc_pred)
 
         return casc_accuracy
 
