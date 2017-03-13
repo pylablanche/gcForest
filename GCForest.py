@@ -369,7 +369,6 @@ class gcForest(object):
 
         return casc_accuracy
 
-
     def _create_feat_arr(self, X, prf_crf_pred):
         """ Concatenate the original feature vector with the predicition probabilities
         of a cascade layer.
@@ -388,29 +387,6 @@ class gcForest(object):
 
         swap_pred = np.swapaxes(prf_crf_pred, 0, 1)
         add_feat = swap_pred.reshape([getattr(self, 'n_samples'), -1])
+        feat_arr = np.concatenate([add_feat, X], axis=1)
 
-        return np.concatenate([add_feat, X], axis=1)
-
-    def _layer_pred_acc(self, prf_crf_pred, y=None):
-        """ Compute the predictions and accuracy from a list of prediction probabilities.
-        The accuracy is only returned if 'y' is not None.
-
-        :param prf_crf_pred: list
-            Prediction probabilities by a cascade layer for X.
-
-        :param y: np.array (default=None)
-            Target values.
-
-        :return: np.array (and float if y is not None)
-            Array containing the predicted classes.
-            If 'y' is not None returns also the layer accuracy.
-        """
-
-        layer_pred_prob = np.mean(prf_crf_pred, axis=0)
-        layer_pred = np.argmax(layer_pred_prob, axis=1)
-        if y is not None:
-            accuracy = accuracy_score(y_true=y, y_pred=layer_pred)
-            print('Layer accuracy : {}'.format(accuracy))
-            return layer_pred, accuracy
-        elif y is None:
-            return layer_pred
+        return feat_arr
