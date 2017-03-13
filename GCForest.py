@@ -1,3 +1,18 @@
+"""
+Date : 13th March 2017
+Author : Pierre-Yves Lablanche
+Affiliation : African Institute for Mathematical Sciences - South Africa
+             Stellenbosch University - South Africa
+
+License : GPL
+
+Status : Uner Development
+
+Description :
+Implementation of the gcForest algorithm in python3.
+Uses the scikit learn syntax .fit() .predict()
+
+"""
 import itertools
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
@@ -10,6 +25,28 @@ class gcForest(object):
 
     def __init__(self, n_mgsRFtree=30, window=[0],
                  n_cascadeRF=2, n_cascadeRFtree=101, min_samples=0.05):
+        """ gcForest Classifier.
+
+        :param n_mgsRFtree: int (default=30)
+            Number of trees in a Random Forest during Multi Grain Scanning.
+
+        :param window: int (default=[0])
+            List of window sizes to use during Multi Grain Scanning.
+
+        :param n_cascadeRF: int (default=2)
+            Number of Random Forests in a cascade layer.
+            For each pseudo Random Forest a complete Random Forest is created, hence
+            the total numbe of Random Forests in a layer will be 2*n_cascadeRF.
+
+        :param n_cascadeRFtree: int (default=101)
+            Number of trees in a single Random Forest in a cascade layer.
+
+        :param min_samples: float or int (default=0.1)
+            Minimum number of samples in a node to perform a split
+            during the training of any Random Forest.
+            If int number_of_samples = int.
+            If float, min_samples represents the fraction of the initial n_samples to consider.
+        """
 
         setattr(self, 'n_layer', 0)
         setattr(self, 'n_samples', 0)
@@ -20,6 +57,19 @@ class gcForest(object):
         setattr(self, 'min_samples', min_samples)
 
     def fit(self, X, y, shape_1X):
+        """ Training the gcForest on input data X and associated target y.
+
+        :param X: np.array
+            Array containing the input samples.
+            Must be of shape [n_samples, data] where data is a 1D array.
+
+        :param y: np.array
+            1D array containing the target values.
+            Must be of shape [n_samples]
+
+        :param shape_1X: list or np.array
+             Expected shape of a single sample. This is use as picture might not be square.
+        """
 
         if np.shape(X)[0] != len(y):
             raise ValueError('Sizes of y and X do not match.')
@@ -29,6 +79,15 @@ class gcForest(object):
         self.cascade_forest(mgs_X, y)
 
     def predict(self, X):
+        """ Predict the class of unknown samples X.
+
+        :param X: np.array
+            Array containing the input samples.
+            Must be of the same shape [n_samples, data] as the training inputs.
+
+        :return: np.array
+            1D array containing the predicted class for each input sample.
+        """
 
         mgs_X = self.mg_scanning(X)
         predictions = self.cascade_forest(mgs_X)
@@ -36,6 +95,17 @@ class gcForest(object):
         return predictions
 
     def mg_scanning(self, X, y=None):
+        """ Performs a Multi Grain Scanning on input data.
+
+        :param X: np.array
+            Array containing the input samples.
+            Must be of shape [n_samples, data] where data is a 1D array.
+
+        :param y: np.array (default=None)
+
+        :return: np.array
+            Array of shape [n_samples, .. ] containing Multi Grain Scanning sliced data.
+        """
 
         shape_1X = getattr(self, 'shape_1X')
         if len(shape_1X) < 2:
@@ -50,6 +120,26 @@ class gcForest(object):
         return np.concatenate(mgs_pred_prob, axis=1)
 
     def window_slicing_pred_prob(self, X, window, shape_1X, y=None):
+        """ Performs a window slicing of the input data and send them through Random Forests.
+        If target values 'y' are provided sliced data are then used to train the Random Forests.
+
+        :param X: np.array
+            Array containing the input samples.
+            Must be of shape [n_samples, data] where data is a 1D array.
+
+        :param window: int
+            Size of the window to use for slicing.
+
+        :param shape_1X: list or np.array
+            Shape of a single sample.
+
+        :param y: np.array (default=None)
+            Target values. If 'None' no training is done.
+
+        :return: np.array
+            Array of size [n_samples, ..] containing the Random Forest.
+            prediction probability for each input sample.
+        """
 
         n_tree = getattr(self, 'n_mgsRFtree')
         min_samples = getattr(self, 'min_samples')
@@ -83,6 +173,24 @@ class gcForest(object):
         return pred_prob.reshape([getattr(self, 'n_samples'), -1])
 
     def _window_slicing_img(self, X, window, shape_1X, y=None):
+        """ Slicing procedure for images
+
+        :param X: np.array
+            Array containing the input samples.
+            Must be of shape [n_samples, data] where data is a 1D array.
+
+        :param window: int
+            Size of the window to use for slicing.
+
+        :param shape_1X: list or np.array
+            Shape of a single sample.
+
+        :param y: np.array (default=None)
+            Target values.
+
+        :return: np.array and np.array
+            Arrays containing the sliced images and target values (empty if 'y' is None).
+        """
 
         if any(s < window for s in shape_1X):
             raise ValueError('window must be smaller than both dimensions for an image')
@@ -103,7 +211,24 @@ class gcForest(object):
         return np.asarray(sliced_imgs), np.asarray(sliced_target)
 
     def _window_slicing_sequence(self, X, window, shape_1X, y=None):
+        """ Slicing procedure for sequences (aka shape_1X = [.., 1]).
 
+        :param X: np.array
+            Array containing the input samples.
+            Must be of shape [n_samples, data] where data is a 1D array.
+
+        :param window: int
+            Size of the window to use for slicing.
+
+        :param shape_1X: list or np.array
+            Shape of a single sample.
+
+        :param y: np.array (default=None)
+            Target values.
+
+        :return: np.array and np.array
+            Arrays containing the sliced sequences and target values (empty if 'y' is None).
+        """
         if shape_1X[0] < window:
             raise ValueError('window must be smaller than the sequence dimension')
 
@@ -119,6 +244,25 @@ class gcForest(object):
         return np.reshape(sliced_sqce, [-1, window]), np.ravel(sliced_target)
 
     def cascade_forest(self, X, y=None, max_layers=5, tol=0.01):
+        """ Perform (or train if 'y' is not None) a cascade forest estimator.
+
+        :param X: np.array
+            Array containing the input samples.
+            Must be of shape [n_samples, data] where data is a 1D array.
+
+        :param y: np.array (default=None)
+            Target values. If 'None' perform training.
+
+        :param max_layers: int (default=5)
+            Maximum number of layers allowed when building the cascade.
+
+        :param tol: float (default=0.01)
+            Tolerance for the accuracy. If the accuracy does not increase by more than the
+            fraction defined by tolerance the construction is stopped.
+
+        :return: np.array
+            1D array containing the predicted class for each input sample.
+        """
 
         if y is not None:
             self.n_layer += 1
@@ -148,10 +292,30 @@ class gcForest(object):
 
         return layer_pred
 
-    def _cascade_layer(self, X, y=None, cv=3, min_samples=0.1, layer=0):
+    def _cascade_layer(self, X, y=None, cv=3, layer=0):
+        """ Cascade layer containing Random Forest estimators.
+        If y is not None the layer is trained.
+
+        :param X: np.array
+            Array containing the input samples.
+            Must be of shape [n_samples, data] where data is a 1D array.
+
+        :param y: np.array (default=None)
+            Target values. If 'None' perform training.
+
+        :param cv: int (default=3)
+            Number of split for k-fold cross-validation.
+
+        :param layer: int (default=0)
+            Layer indice. Used to call the previously trained layer.
+
+        :return: list
+            List containing the prediction probabilities for all samples.
+        """
 
         n_tree = getattr(self, 'n_cascadeRFtree')
         n_cascadeRF = getattr(self, 'n_cascadeRF')
+        min_samples = getattr(self, 'min_samples')
 
         prf = RandomForestClassifier(n_estimators=n_tree, max_features='sqrt',
                                      min_samples_split=min_samples)
@@ -178,6 +342,20 @@ class gcForest(object):
         return prf_crf_pred
 
     def _create_feat_arr(self, X, prf_crf_pred):
+        """ Concatenate the original feature vector with the predicition probabilities
+        of a cascade layer.
+
+        :param X: np.array
+            Array containing the input samples.
+            Must be of shape [n_samples, data] where data is a 1D array.
+
+        :param prf_crf_pred: list
+            Prediction probabilities by a cascade layer for X.
+
+        :return: np.array
+            Concatenation of X and the predicted probabilities.
+            To be used for the next layer in a cascade forest.
+        """
 
         swap_pred = np.swapaxes(prf_crf_pred, 0, 1)
         add_feat = swap_pred.reshape([getattr(self, 'n_samples'), -1])
@@ -185,6 +363,19 @@ class gcForest(object):
         return np.concatenate([add_feat, X], axis=1)
 
     def _layer_pred_acc(self, prf_crf_pred, y=None):
+        """ Compute the predictions and accuracy from a list of prediction probabilities.
+        The accuracy is only returned if 'y' is not None.
+
+        :param prf_crf_pred: list
+            Prediction probabilities by a cascade layer for X.
+
+        :param y: np.array (default=None)
+            Target values.
+
+        :return: np.array (and float if y is not None)
+            Array containing the predicted classes.
+            If 'y' is not None returns also the layer accuracy.
+        """
 
         layer_pred_prob = np.mean(prf_crf_pred, axis=0)
         layer_pred = np.argmax(layer_pred_prob, axis=1)
