@@ -28,8 +28,8 @@ from sklearn.metrics import accuracy_score
 # noinspection PyUnboundLocalVariable
 class gcForest(object):
 
-    def __init__(self, n_mgsRFtree=30, window=[0], cascade_test_size=0.2,
-                 n_cascadeRF=2, n_cascadeRFtree=101, min_samples=0.05):
+    def __init__(self, n_mgsRFtree=30, window=[0], cascade_test_size=0.2, n_cascadeRF=2,
+                 n_cascadeRFtree=101, cascade_layer=np.inf, min_samples=0.05, tolerance=0.01):
         """ gcForest Classifier.
 
         :param n_mgsRFtree: int (default=30)
@@ -54,6 +54,15 @@ class gcForest(object):
             during the training of any Random Forest.
             If int number_of_samples = int.
             If float, min_samples represents the fraction of the initial n_samples to consider.
+
+        :param cascade_layer: int (default=np.inf)
+            mMximum number of cascade layers allowed.
+            Useful to limit the contruction of the cascade.
+
+        :param tolerance: float (default=0.01)
+            Accuracy tolerance for the casacade growth.
+            If the improvement in accuracy is not better than the tolerance the construction is
+            stopped. This is meant to prevent infinite infinitesimal improvement.
         """
 
         setattr(self, 'n_layer', 0)
@@ -63,7 +72,9 @@ class gcForest(object):
         setattr(self, 'cascade_test_size', cascade_test_size)
         setattr(self, 'n_mgsRFtree', int(n_mgsRFtree))
         setattr(self, 'n_cascadeRFtree', int(n_cascadeRFtree))
+        setattr(self, 'cascade_layer', cascade_layer)
         setattr(self, 'min_samples', min_samples)
+        setattr(self, 'tolerance', tolerance)
 
     def fit(self, X, y, shape_1X):
         """ Training the gcForest on input data X and associated target y.
@@ -254,7 +265,7 @@ class gcForest(object):
 
         return np.reshape(sliced_sqce, [-1, window]), np.ravel(sliced_target)
 
-    def cascade_forest(self, X, y=None, max_layers=5, tol=0.01):
+    def cascade_forest(self, X, y=None):
         """ Perform (or train if 'y' is not None) a cascade forest estimator.
 
         :param X: np.array
@@ -264,20 +275,15 @@ class gcForest(object):
         :param y: np.array (default=None)
             Target values. If 'None' perform training.
 
-        :param max_layers: int (default=5)
-            Maximum number of layers allowed when building the cascade.
-
-        :param tol: float (default=0.01)
-            Tolerance for the accuracy. If the accuracy does not increase by more than the
-            fraction defined by tolerance the construction is stopped.
-
         :return: np.array
             1D array containing the predicted class for each input sample.
         """
 
-        test_size = getattr(self, 'cascade_test_size')
-
         if y is not None:
+            test_size = getattr(self, 'cascade_test_size')
+            max_layers = getattr(self, 'cascade_layer')
+            tol = getattr(self, 'tolerance')
+
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size)
 
             self.n_layer += 1
