@@ -1,16 +1,21 @@
+#!usr/bin/env python3
 """
-Date : 13th March 2017
+Version : 0.1.0
+Date : 14th March 2017
+
 Author : Pierre-Yves Lablanche
+Email : plablanche@aims.ac.za
 Affiliation : African Institute for Mathematical Sciences - South Africa
-             Stellenbosch University - South Africa
+              Stellenbosch University - South Africa
 
 License :
 
 Status : Under Development
 
 Description :
-Implementation of the gcForest algorithm in python3.
-Uses the scikit learn syntax .fit() .predict()
+Implementation of the gcForest algorithm [Zhou and Feng 2017] in python3.
+It uses the typical scikit-learn syntax  with a .fit() function for training
+and a .predict() function for predictions.
 
 """
 import itertools
