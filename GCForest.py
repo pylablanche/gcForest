@@ -181,12 +181,12 @@ class gcForest(object):
             print('Training MGS Random Forests...')
             prf.fit(sliced_X, sliced_y)
             crf.fit(sliced_X, sliced_y)
-            setattr(self, '_mgsprf', prf)
-            setattr(self, '_mgscrf', crf)
+            setattr(self, '_mgsprf_{}'.format(window), prf)
+            setattr(self, '_mgscrf_{}'.format(window), crf)
 
-        if hasattr(self, '_mgsprf') and y is None:
-            prf = getattr(self, '_mgsprf')
-            crf = getattr(self, '_mgscrf')
+        if hasattr(self, '_mgsprf_{}'.format(window)) and y is None:
+            prf = getattr(self, '_mgsprf_{}'.format(window))
+            crf = getattr(self, '_mgscrf_{}'.format(window))
 
         pred_prob_prf = prf.predict_proba(sliced_X)
         pred_prob_crf = crf.predict_proba(sliced_X)
