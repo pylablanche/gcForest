@@ -1,4 +1,4 @@
-#!usr/bin/env python3
+#!usr/bin/env python
 """
 Version : 0.1.0
 Date : 14th March 2017
@@ -24,6 +24,11 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_predict, train_test_split
 from sklearn.metrics import accuracy_score
 
+__author__ = "Pierre-Yves Lablanche"
+__email__ = "plablanche@aims.ac.za"
+__license__ = ""
+__version__ = "0.1.0"
+__status__ = "Development"
 
 # noinspection PyUnboundLocalVariable
 class gcForest(object):
