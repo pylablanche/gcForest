@@ -30,6 +30,7 @@ __license__ = "MIT"
 __version__ = "0.1.0"
 __status__ = "Development"
 
+
 # noinspection PyUnboundLocalVariable
 class gcForest(object):
 
@@ -71,7 +72,7 @@ class gcForest(object):
         """
 
         setattr(self, 'n_layer', 0)
-        setattr(self, 'n_samples', 0)
+        setattr(self, '_n_samples', 0)
         setattr(self, 'n_cascadeRF', int(n_cascadeRF))
         setattr(self, 'window', window)
         setattr(self, 'cascade_test_size', cascade_test_size)
@@ -98,7 +99,7 @@ class gcForest(object):
 
         if np.shape(X)[0] != len(y):
             raise ValueError('Sizes of y and X do not match.')
-        setattr(self, 'n_samples', np.shape(X)[0])
+        setattr(self, '_n_samples', np.shape(X)[0])
         setattr(self, 'shape_1X', shape_1X)
         mgs_X = self.mg_scanning(X, y)
         _ = self.cascade_forest(mgs_X, y)
@@ -114,6 +115,7 @@ class gcForest(object):
             1D array containing the predicted class for each input sample.
         """
 
+        setattr(self, '_n_samples', np.shape(X)[0])
         mgs_X = self.mg_scanning(X)
         cascade_all_pred_prob = self.cascade_forest(mgs_X)
         cascade_pred_prob = np.mean(cascade_all_pred_prob, axis=0)
@@ -197,7 +199,7 @@ class gcForest(object):
         pred_prob_crf = crf.predict_proba(sliced_X)
         pred_prob = np.c_[pred_prob_prf, pred_prob_crf]
 
-        return pred_prob.reshape([getattr(self, 'n_samples'), -1])
+        return pred_prob.reshape([getattr(self, '_n_samples'), -1])
 
     def _window_slicing_img(self, X, window, shape_1X, y=None):
         """ Slicing procedure for images
