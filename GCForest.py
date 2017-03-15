@@ -8,7 +8,7 @@ Email : plablanche@aims.ac.za
 Affiliation : African Institute for Mathematical Sciences - South Africa
               Stellenbosch University - South Africa
 
-License :
+License : MIT
 
 Status : Under Development
 
@@ -26,7 +26,7 @@ from sklearn.metrics import accuracy_score
 
 __author__ = "Pierre-Yves Lablanche"
 __email__ = "plablanche@aims.ac.za"
-__license__ = ""
+__license__ = "MIT"
 __version__ = "0.1.0"
 __status__ = "Development"
 
