@@ -13,3 +13,11 @@ The present code contains a first direct python (3.x) implentation of the gcFore
 
 Note that I wrote the code from scratch in two days and even though I have tested it on several cases I cannot certify that it is a 100% bug free.
 **Feel free to test it and send me your feedback about any improvement and/or modification!**
+
+
+--- Some Tests Results using this code ---
+(will be updated as result come out)
+
+Scikit-learn handwritten digits classification :
+training time ~ 5min
+accuracy ~ 98%
