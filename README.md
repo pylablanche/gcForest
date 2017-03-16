@@ -19,5 +19,7 @@ Note that I wrote the code from scratch in two days and even though I have teste
 (will be updated as result come out)
 
 Scikit-learn handwritten digits classification :
+
 training time ~ 5min
+
 accuracy ~ 98%
