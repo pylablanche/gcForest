@@ -100,7 +100,6 @@ class gcForest(object):
 
         if np.shape(X)[0] != len(y):
             raise ValueError('Sizes of y and X do not match.')
-        setattr(self, '_n_samples', np.shape(X)[0])
         setattr(self, 'n_layer', 0)
         setattr(self, 'shape_1X', shape_1X)
         if not getattr(self, 'window'):
@@ -119,7 +118,6 @@ class gcForest(object):
             1D array containing the predicted class for each input sample.
         """
 
-        setattr(self, '_n_samples', np.shape(X)[0])
         mgs_X = self.mg_scanning(X)
         cascade_all_pred_prob = self.cascade_forest(mgs_X)
         cascade_pred_prob = np.mean(cascade_all_pred_prob, axis=0)
@@ -140,6 +138,7 @@ class gcForest(object):
             Array of shape [n_samples, .. ] containing Multi Grain Scanning sliced data.
         """
 
+        setattr(self, '_n_samples', np.shape(X)[0])
         shape_1X = getattr(self, 'shape_1X')
         if len(shape_1X) < 2:
             raise ValueError('shape parameter must be a tuple')
