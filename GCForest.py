@@ -1,7 +1,7 @@
 #!usr/bin/env python
 """
 Version : 0.1.0
-Date : 14th March 2017
+Date : 16th March 2017
 
 Author : Pierre-Yves Lablanche
 Email : plablanche@aims.ac.za
