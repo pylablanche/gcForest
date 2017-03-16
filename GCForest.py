@@ -34,15 +34,16 @@ __status__ = "Development"
 # noinspection PyUnboundLocalVariable
 class gcForest(object):
 
-    def __init__(self, n_mgsRFtree=30, window=[0], cascade_test_size=0.2, n_cascadeRF=2,
+    def __init__(self, n_mgsRFtree=30, window=None, cascade_test_size=0.2, n_cascadeRF=2,
                  n_cascadeRFtree=101, cascade_layer=np.inf, min_samples=0.05, tolerance=0.01):
         """ gcForest Classifier.
 
         :param n_mgsRFtree: int (default=30)
             Number of trees in a Random Forest during Multi Grain Scanning.
 
-        :param window: int (default=[0])
+        :param window: int (default=None)
             List of window sizes to use during Multi Grain Scanning.
+            If 'None' no slicing will be done.
 
         :param cascade_test_size: float or int (default=0.2)
             Split fraction or absolute number for cascade training set splitting.
@@ -100,7 +101,10 @@ class gcForest(object):
         if np.shape(X)[0] != len(y):
             raise ValueError('Sizes of y and X do not match.')
         setattr(self, '_n_samples', np.shape(X)[0])
+        setattr(self, 'n_layer', 0)
         setattr(self, 'shape_1X', shape_1X)
+        if not getattr(self, 'window'):
+            setattr(self, 'window', shape_1X[0])
         mgs_X = self.mg_scanning(X, y)
         _ = self.cascade_forest(mgs_X, y)
 
