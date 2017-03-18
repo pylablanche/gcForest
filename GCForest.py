@@ -75,7 +75,10 @@ class gcForest(object):
         setattr(self, 'n_layer', 0)
         setattr(self, '_n_samples', 0)
         setattr(self, 'n_cascadeRF', int(n_cascadeRF))
-        setattr(self, 'window', window)
+        if isinstance(window, int):
+            setattr(self, 'window', [window])
+        elif isinstance(window, list):
+            setattr(self, 'window', window)
         setattr(self, 'cascade_test_size', cascade_test_size)
         setattr(self, 'n_mgsRFtree', int(n_mgsRFtree))
         setattr(self, 'n_cascadeRFtree', int(n_cascadeRFtree))
@@ -103,7 +106,7 @@ class gcForest(object):
         setattr(self, 'n_layer', 0)
         setattr(self, 'shape_1X', shape_1X)
         if not getattr(self, 'window'):
-            setattr(self, 'window', shape_1X[0])
+            setattr(self, 'window', [shape_1X[0]])
         mgs_X = self.mg_scanning(X, y)
         _ = self.cascade_forest(mgs_X, y)
 
