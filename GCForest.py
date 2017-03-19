@@ -13,7 +13,8 @@ License : MIT
 Status : Under Development
 
 Description :
-Implementation of the gcForest algorithm [Zhou and Feng 2017] in python3.
+Python3 implementation of the gcForest algorithm preesented in Zhou and Feng 2017
+(paper can be found here : https://arxiv.org/abs/1702.08835 ).
 It uses the typical scikit-learn syntax  with a .fit() function for training
 and a .predict() function for predictions.
 
