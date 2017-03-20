@@ -35,9 +35,12 @@ __status__ = "Development"
 # noinspection PyUnboundLocalVariable
 class gcForest(object):
 
-    def __init__(self, n_mgsRFtree=30, window=None, cascade_test_size=0.2, n_cascadeRF=2,
+    def __init__(self, shape_1X, n_mgsRFtree=30, window=None, cascade_test_size=0.2, n_cascadeRF=2,
                  n_cascadeRFtree=101, cascade_layer=np.inf, min_samples=0.05, tolerance=0.01):
         """ gcForest Classifier.
+
+        :param shape_1X:
+            Shape of a single sample element.
 
         :param n_mgsRFtree: int (default=30)
             Number of trees in a Random Forest during Multi Grain Scanning.
@@ -73,6 +76,7 @@ class gcForest(object):
             stopped. This is meant to prevent infinite infinitesimal improvement.
         """
 
+        setattr(self, 'shape_1X', shape_1X)
         setattr(self, 'n_layer', 0)
         setattr(self, '_n_samples', 0)
         setattr(self, 'n_cascadeRF', int(n_cascadeRF))
@@ -87,7 +91,7 @@ class gcForest(object):
         setattr(self, 'min_samples', min_samples)
         setattr(self, 'tolerance', tolerance)
 
-    def fit(self, X, y, shape_1X):
+    def fit(self, X, y):
         """ Training the gcForest on input data X and associated target y.
 
         :param X: np.array
@@ -97,16 +101,13 @@ class gcForest(object):
         :param y: np.array
             1D array containing the target values.
             Must be of shape [n_samples]
-
-        :param shape_1X: list or np.array
-             Expected shape of a single sample. This is use as picture might not be square.
         """
 
         if np.shape(X)[0] != len(y):
             raise ValueError('Sizes of y and X do not match.')
         setattr(self, 'n_layer', 0)
-        setattr(self, 'shape_1X', shape_1X)
         if not getattr(self, 'window'):
+            shape_1X = getattr(self, 'shape_1X')
             setattr(self, 'window', [shape_1X[0]])
         mgs_X = self.mg_scanning(X, y)
         _ = self.cascade_forest(mgs_X, y)
