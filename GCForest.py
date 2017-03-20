@@ -22,7 +22,7 @@ and a .predict() function for predictions.
 import itertools
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import cross_val_predict, train_test_split
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
 __author__ = "Pierre-Yves Lablanche"
@@ -36,10 +36,10 @@ __status__ = "Development"
 class gcForest(object):
 
     def __init__(self, shape_1X, n_mgsRFtree=30, window=None, cascade_test_size=0.2, n_cascadeRF=2,
-                 n_cascadeRFtree=101, cascade_layer=np.inf, min_samples=0.05, tolerance=0.01):
+                 n_cascadeRFtree=101, cascade_layer=np.inf, min_samples=0.05, tolerance=0.0):
         """ gcForest Classifier.
 
-        :param shape_1X:
+        :param shape_1X: tuple list or np.array
             Shape of a single sample element.
 
         :param n_mgsRFtree: int (default=30)
@@ -70,10 +70,10 @@ class gcForest(object):
             mMximum number of cascade layers allowed.
             Useful to limit the contruction of the cascade.
 
-        :param tolerance: float (default=0.01)
+        :param tolerance: float (default=0.0)
             Accuracy tolerance for the casacade growth.
             If the improvement in accuracy is not better than the tolerance the construction is
-            stopped. This is meant to prevent infinite infinitesimal improvement.
+            stopped.
         """
 
         setattr(self, 'shape_1X', shape_1X)
@@ -190,21 +190,23 @@ class gcForest(object):
 
         if y is not None:
             prf = RandomForestClassifier(n_estimators=n_tree, max_features='sqrt',
-                                         min_samples_split=min_samples)
+                                         min_samples_split=min_samples, oob_score=True)
             crf = RandomForestClassifier(n_estimators=n_tree, max_features=None,
-                                         min_samples_split=min_samples)
+                                         min_samples_split=min_samples, oob_score=True)
             print('Training MGS Random Forests...')
             prf.fit(sliced_X, sliced_y)
             crf.fit(sliced_X, sliced_y)
             setattr(self, '_mgsprf_{}'.format(window), prf)
             setattr(self, '_mgscrf_{}'.format(window), crf)
+            pred_prob_prf = prf.oob_decision_function_
+            pred_prob_crf = crf.oob_decision_function_
 
         if hasattr(self, '_mgsprf_{}'.format(window)) and y is None:
             prf = getattr(self, '_mgsprf_{}'.format(window))
             crf = getattr(self, '_mgscrf_{}'.format(window))
+            pred_prob_prf = prf.predict_proba(sliced_X)
+            pred_prob_crf = crf.predict_proba(sliced_X)
 
-        pred_prob_prf = prf.predict_proba(sliced_X)
-        pred_prob_crf = crf.predict_proba(sliced_X)
         pred_prob = np.c_[pred_prob_prf, pred_prob_crf]
 
         return pred_prob.reshape([getattr(self, '_n_samples'), -1])
@@ -310,7 +312,7 @@ class gcForest(object):
             prf_crf_pred_layer = self._cascade_layer(feat_arr, y_train)
             accuracy_layer = self._cascade_evaluation(X_test, y_test)
 
-            while accuracy_layer > (accuracy_ref * (1.0 + tol)) and self.n_layer <= max_layers:
+            while accuracy_layer > (accuracy_ref + tol) and self.n_layer <= max_layers:
                 accuracy_ref = accuracy_layer
                 prf_crf_pred_ref = prf_crf_pred_layer
                 feat_arr = self._create_feat_arr(X_train, prf_crf_pred_ref)
@@ -354,20 +356,20 @@ class gcForest(object):
         min_samples = getattr(self, 'min_samples')
 
         prf = RandomForestClassifier(n_estimators=n_tree, max_features='sqrt',
-                                     min_samples_split=min_samples)
+                                     min_samples_split=min_samples, oob_score=True)
         crf = RandomForestClassifier(n_estimators=n_tree, max_features=None,
-                                     min_samples_split=min_samples)
+                                     min_samples_split=min_samples, oob_score=True)
 
         prf_crf_pred = []
         if y is not None:
             print('Adding/Training Layer, n_layer={}'.format(self.n_layer))
             for irf in range(n_cascadeRF):
-                prf_crf_pred.append(cross_val_predict(prf, X, y=y, cv=cv, method='predict_proba'))
-                prf_crf_pred.append(cross_val_predict(crf, X, y=y, cv=cv, method='predict_proba'))
                 prf.fit(X, y)
                 crf.fit(X, y)
                 setattr(self, '_casprf{}_{}'.format(self.n_layer, irf), prf)
                 setattr(self, '_cascrf{}_{}'.format(self.n_layer, irf), crf)
+                prf_crf_pred.append(prf.oob_decision_function_)
+                prf_crf_pred.append(crf.oob_decision_function_)
         elif y is None:
             for irf in range(n_cascadeRF):
                 prf = getattr(self, '_casprf{}_{}'.format(layer, irf))
