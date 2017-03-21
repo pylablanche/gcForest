@@ -105,10 +105,7 @@ class gcForest(object):
 
         if np.shape(X)[0] != len(y):
             raise ValueError('Sizes of y and X do not match.')
-        setattr(self, 'n_layer', 0)
-        if not getattr(self, 'window'):
-            shape_1X = getattr(self, 'shape_1X')
-            setattr(self, 'window', [shape_1X[0]])
+
         mgs_X = self.mg_scanning(X, y)
         _ = self.cascade_forest(mgs_X, y)
 
@@ -147,6 +144,8 @@ class gcForest(object):
         shape_1X = getattr(self, 'shape_1X')
         if len(shape_1X) < 2:
             raise ValueError('shape parameter must be a tuple')
+        if not getattr(self, 'window'):
+            setattr(self, 'window', [shape_1X[0]])
 
         mgs_pred_prob = []
 
@@ -297,6 +296,7 @@ class gcForest(object):
         """
 
         if y is not None:
+            setattr(self, 'n_layer', 0)
             test_size = getattr(self, 'cascade_test_size')
             max_layers = getattr(self, 'cascade_layer')
             tol = getattr(self, 'tolerance')
