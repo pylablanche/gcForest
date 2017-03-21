@@ -1,7 +1,7 @@
 #!usr/bin/env python
 """
-Version : 0.1.0
-Date : 16th March 2017
+Version : 0.1.1
+Date : 21st March 2017
 
 Author : Pierre-Yves Lablanche
 Email : plablanche@aims.ac.za
@@ -28,19 +28,19 @@ from sklearn.metrics import accuracy_score
 __author__ = "Pierre-Yves Lablanche"
 __email__ = "plablanche@aims.ac.za"
 __license__ = "MIT"
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __status__ = "Development"
 
 
 # noinspection PyUnboundLocalVariable
 class gcForest(object):
 
-    def __init__(self, shape_1X, n_mgsRFtree=30, window=None, cascade_test_size=0.2, n_cascadeRF=2,
+    def __init__(self, shape_1X=None, n_mgsRFtree=30, window=None, cascade_test_size=0.2, n_cascadeRF=2,
                  n_cascadeRFtree=101, cascade_layer=np.inf, min_samples=0.05, tolerance=0.0):
         """ gcForest Classifier.
 
-        :param shape_1X: tuple list or np.array
-            Shape of a single sample element.
+        :param shape_1X: tuple list or np.array (default=None)
+            Shape of a single sample element. Required when calling mg_scanning!
 
         :param n_mgsRFtree: int (default=30)
             Number of trees in a Random Forest during Multi Grain Scanning.
