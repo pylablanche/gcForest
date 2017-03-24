@@ -1,4 +1,4 @@
-# gcForest
+# gcForest in Python
 
 *Status* : under development
 
