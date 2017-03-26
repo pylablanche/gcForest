@@ -109,6 +109,23 @@ class gcForest(object):
         mgs_X = self.mg_scanning(X, y)
         _ = self.cascade_forest(mgs_X, y)
 
+    def predict_proba(self, X):
+        """ Predict the class probabilities of unknown samples X.
+
+        :param X: np.array
+            Array containing the input samples.
+            Must be of the same shape [n_samples, data] as the training inputs.
+
+        :return: np.array
+            1D array containing the predicted class probabilities for each input sample.
+        """
+
+        mgs_X = self.mg_scanning(X)
+        cascade_all_pred_prob = self.cascade_forest(mgs_X)
+        predict_proba = np.mean(cascade_all_pred_prob, axis=0)
+
+        return predict_proba
+
     def predict(self, X):
         """ Predict the class of unknown samples X.
 
@@ -120,10 +137,8 @@ class gcForest(object):
             1D array containing the predicted class for each input sample.
         """
 
-        mgs_X = self.mg_scanning(X)
-        cascade_all_pred_prob = self.cascade_forest(mgs_X)
-        cascade_pred_prob = np.mean(cascade_all_pred_prob, axis=0)
-        predictions = np.argmax(cascade_pred_prob, axis=1)
+        pred_proba = self.predict_proba(X=X)
+        predictions = np.argmax(pred_proba, axis=1)
 
         return predictions
 
