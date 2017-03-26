@@ -36,7 +36,7 @@ __status__ = "Development"
 class gcForest(object):
 
     def __init__(self, shape_1X=None, n_mgsRFtree=30, window=None, cascade_test_size=0.2, n_cascadeRF=2,
-                 n_cascadeRFtree=101, cascade_layer=np.inf, min_samples=0.05, tolerance=0.0):
+                 n_cascadeRFtree=101, cascade_layer=np.inf, min_samples=0.05, tolerance=0.0, n_jobs=1):
         """ gcForest Classifier.
 
         :param shape_1X: tuple list or np.array (default=None)
@@ -74,6 +74,10 @@ class gcForest(object):
             Accuracy tolerance for the casacade growth.
             If the improvement in accuracy is not better than the tolerance the construction is
             stopped.
+
+        :param n_jobs: int (default=1)
+            The number of jobs to run in parallel for any Random Forest fit and predict.
+            If -1, then the number of jobs is set to the number of cores.
         """
 
         setattr(self, 'shape_1X', shape_1X)
@@ -90,6 +94,7 @@ class gcForest(object):
         setattr(self, 'cascade_layer', cascade_layer)
         setattr(self, 'min_samples', min_samples)
         setattr(self, 'tolerance', tolerance)
+        setattr(self, 'n_jobs', n_jobs)
 
     def fit(self, X, y):
         """ Training the gcForest on input data X and associated target y.
@@ -203,10 +208,11 @@ class gcForest(object):
             sliced_X, sliced_y = self._window_slicing_sequence(X, window, shape_1X, y=y)
 
         if y is not None:
+            n_jobs = getattr(self, 'n_jobs')
             prf = RandomForestClassifier(n_estimators=n_tree, max_features='sqrt',
-                                         min_samples_split=min_samples, oob_score=True)
+                                         min_samples_split=min_samples, oob_score=True, n_jobs=n_jobs)
             crf = RandomForestClassifier(n_estimators=n_tree, max_features=None,
-                                         min_samples_split=min_samples, oob_score=True)
+                                         min_samples_split=min_samples, oob_score=True, n_jobs=n_jobs)
             print('Training MGS Random Forests...')
             prf.fit(sliced_X, sliced_y)
             crf.fit(sliced_X, sliced_y)
@@ -370,10 +376,11 @@ class gcForest(object):
         n_cascadeRF = getattr(self, 'n_cascadeRF')
         min_samples = getattr(self, 'min_samples')
 
+        n_jobs = getattr(self, 'n_jobs')
         prf = RandomForestClassifier(n_estimators=n_tree, max_features='sqrt',
-                                     min_samples_split=min_samples, oob_score=True)
+                                     min_samples_split=min_samples, oob_score=True, n_jobs=n_jobs)
         crf = RandomForestClassifier(n_estimators=n_tree, max_features=None,
-                                     min_samples_split=min_samples, oob_score=True)
+                                     min_samples_split=min_samples, oob_score=True, n_jobs=n_jobs)
 
         prf_crf_pred = []
         if y is not None:
