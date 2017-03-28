@@ -35,8 +35,9 @@ __status__ = "Development"
 # noinspection PyUnboundLocalVariable
 class gcForest(object):
 
-    def __init__(self, shape_1X=None, n_mgsRFtree=30, window=None, cascade_test_size=0.2, n_cascadeRF=2,
-                 n_cascadeRFtree=101, cascade_layer=np.inf, min_samples=0.05, tolerance=0.0, n_jobs=1):
+    def __init__(self, shape_1X=None, n_mgsRFtree=30, window=None, stride=1,
+                 cascade_test_size=0.2, n_cascadeRF=2, n_cascadeRFtree=101, cascade_layer=np.inf,
+                 min_samples=0.05, tolerance=0.0, n_jobs=1):
         """ gcForest Classifier.
 
         :param shape_1X: tuple list or np.array (default=None)
@@ -48,6 +49,9 @@ class gcForest(object):
         :param window: int (default=None)
             List of window sizes to use during Multi Grain Scanning.
             If 'None' no slicing will be done.
+
+        :param stride: int (default=1)
+            Step used when slicing the data.
 
         :param cascade_test_size: float or int (default=0.2)
             Split fraction or absolute number for cascade training set splitting.
@@ -88,6 +92,7 @@ class gcForest(object):
             setattr(self, 'window', [window])
         elif isinstance(window, list):
             setattr(self, 'window', window)
+        setattr(self, 'stride', stride)
         setattr(self, 'cascade_test_size', cascade_test_size)
         setattr(self, 'n_mgsRFtree', int(n_mgsRFtree))
         setattr(self, 'n_cascadeRFtree', int(n_cascadeRFtree))
@@ -199,13 +204,14 @@ class gcForest(object):
 
         n_tree = getattr(self, 'n_mgsRFtree')
         min_samples = getattr(self, 'min_samples')
+        stride = getattr(self, 'stride')
 
         if shape_1X[1] > 1:
             print('Slicing Images...')
-            sliced_X, sliced_y = self._window_slicing_img(X, window, shape_1X, y=y)
+            sliced_X, sliced_y = self._window_slicing_img(X, window, shape_1X, y=y, stride=stride)
         else:
             print('Slicing Sequence...')
-            sliced_X, sliced_y = self._window_slicing_sequence(X, window, shape_1X, y=y)
+            sliced_X, sliced_y = self._window_slicing_sequence(X, window, shape_1X, y=y, stride=stride)
 
         if y is not None:
             n_jobs = getattr(self, 'n_jobs')
@@ -231,7 +237,7 @@ class gcForest(object):
 
         return pred_prob.reshape([getattr(self, '_n_samples'), -1])
 
-    def _window_slicing_img(self, X, window, shape_1X, y=None):
+    def _window_slicing_img(self, X, window, shape_1X, y=None, stride=1):
         """ Slicing procedure for images
 
         :param X: np.array
@@ -247,6 +253,9 @@ class gcForest(object):
         :param y: np.array (default=None)
             Target values.
 
+        :param stride: int (default=1)
+            Step used when slicing the data.
+
         :return: np.array and np.array
             Arrays containing the sliced images and target values (empty if 'y' is None).
         """
@@ -258,10 +267,12 @@ class gcForest(object):
         sliced_target = []
         refs = np.arange(0, window * shape_1X[1], shape_1X[0])
 
-        iterx = list(range(shape_1X[0] - window + 1))
-        itery = list(range(shape_1X[1] - window + 1))
+        len_iter_x = np.floor_divide((shape_1X[0] - window), stride) + 1
+        len_iter_y = np.floor_divide((shape_1X[1] - window), stride) + 1
+        iterx_array = np.arange(0, stride*len_iter_x, stride)
+        itery_array = np.arange(0, stride*len_iter_y, stride)
 
-        for img, ix, iy in itertools.product(enumerate(X), iterx, itery):
+        for img, ix, iy in itertools.product(enumerate(X), iterx_array, itery_array):
             rind = refs + ix + shape_1X[0] * iy
             sliced_imgs.append(np.ravel([img[1][i:i + window] for i in rind]))
             if y is not None:
@@ -269,7 +280,7 @@ class gcForest(object):
 
         return np.asarray(sliced_imgs), np.asarray(sliced_target)
 
-    def _window_slicing_sequence(self, X, window, shape_1X, y=None):
+    def _window_slicing_sequence(self, X, window, shape_1X, y=None, stride=1):
         """ Slicing procedure for sequences (aka shape_1X = [.., 1]).
 
         :param X: np.array
@@ -285,6 +296,9 @@ class gcForest(object):
         :param y: np.array (default=None)
             Target values.
 
+        :param stride: int (default=1)
+            Step used when slicing the data.
+
         :return: np.array and np.array
             Arrays containing the sliced sequences and target values (empty if 'y' is None).
         """
@@ -294,11 +308,14 @@ class gcForest(object):
         sliced_sqce = []
         sliced_target = []
 
+        len_iter = np.floor_divide((shape_1X[0] - window), stride) + 1
+        iter_array = np.arange(0, stride*len_iter, stride)
+
         for sqce in enumerate(X):
-            slice_sqce = [sqce[1][i:i + window] for i in np.arange(shape_1X[0] - window + 1)]
+            slice_sqce = [sqce[1][i:i + window] for i in iter_array]
             sliced_sqce.append(slice_sqce)
             if y is not None:
-                sliced_target.append(np.repeat(y[sqce[0]], shape_1X[0] - window + 1))
+                sliced_target.append(np.repeat(y[sqce[0]], len_iter))
 
         return np.reshape(sliced_sqce, [-1, window]), np.ravel(sliced_target)
 
