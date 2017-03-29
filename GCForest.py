@@ -1,7 +1,7 @@
 #!usr/bin/env python
 """
-Version : 0.1.1
-Date : 21st March 2017
+Version : 0.1.2
+Date : 29th March 2017
 
 Author : Pierre-Yves Lablanche
 Email : plablanche@aims.ac.za
@@ -28,7 +28,7 @@ from sklearn.metrics import accuracy_score
 __author__ = "Pierre-Yves Lablanche"
 __email__ = "plablanche@aims.ac.za"
 __license__ = "MIT"
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 __status__ = "Development"
 
 
@@ -41,7 +41,7 @@ class gcForest(object):
         """ gcForest Classifier.
 
         :param shape_1X: tuple list or np.array (default=None)
-            Shape of a single sample element. Required when calling mg_scanning!
+            Shape of a single sample element [n_lines, n_cols]. Required when calling mg_scanning!
 
         :param n_mgsRFtree: int (default=30)
             Number of trees in a Random Forest during Multi Grain Scanning.
@@ -170,7 +170,7 @@ class gcForest(object):
         if len(shape_1X) < 2:
             raise ValueError('shape parameter must be a tuple')
         if not getattr(self, 'window'):
-            setattr(self, 'window', [shape_1X[0]])
+            setattr(self, 'window', [shape_1X[1]])
 
         mgs_pred_prob = []
 
@@ -206,7 +206,7 @@ class gcForest(object):
         min_samples = getattr(self, 'min_samples')
         stride = getattr(self, 'stride')
 
-        if shape_1X[1] > 1:
+        if shape_1X[0] > 1:
             print('Slicing Images...')
             sliced_X, sliced_y = self._window_slicing_img(X, window, shape_1X, y=y, stride=stride)
         else:
@@ -248,7 +248,7 @@ class gcForest(object):
             Size of the window to use for slicing.
 
         :param shape_1X: list or np.array
-            Shape of a single sample.
+            Shape of a single sample [n_lines, n_cols].
 
         :param y: np.array (default=None)
             Target values.
@@ -265,15 +265,15 @@ class gcForest(object):
 
         sliced_imgs = []
         sliced_target = []
-        refs = np.arange(0, window * shape_1X[1], shape_1X[0])
+        refs = np.arange(0, window * shape_1X[0], shape_1X[1])
 
-        len_iter_x = np.floor_divide((shape_1X[0] - window), stride) + 1
-        len_iter_y = np.floor_divide((shape_1X[1] - window), stride) + 1
+        len_iter_x = np.floor_divide((shape_1X[1] - window), stride) + 1
+        len_iter_y = np.floor_divide((shape_1X[0] - window), stride) + 1
         iterx_array = np.arange(0, stride*len_iter_x, stride)
         itery_array = np.arange(0, stride*len_iter_y, stride)
 
         for img, ix, iy in itertools.product(enumerate(X), iterx_array, itery_array):
-            rind = refs + ix + shape_1X[0] * iy
+            rind = refs + ix + shape_1X[1] * iy
             sliced_imgs.append(np.ravel([img[1][i:i + window] for i in rind]))
             if y is not None:
                 sliced_target.append(y[img[0]])
@@ -291,7 +291,7 @@ class gcForest(object):
             Size of the window to use for slicing.
 
         :param shape_1X: list or np.array
-            Shape of a single sample.
+            Shape of a single sample [n_lines, n_col].
 
         :param y: np.array (default=None)
             Target values.
@@ -302,13 +302,13 @@ class gcForest(object):
         :return: np.array and np.array
             Arrays containing the sliced sequences and target values (empty if 'y' is None).
         """
-        if shape_1X[0] < window:
+        if shape_1X[1] < window:
             raise ValueError('window must be smaller than the sequence dimension')
 
         sliced_sqce = []
         sliced_target = []
 
-        len_iter = np.floor_divide((shape_1X[0] - window), stride) + 1
+        len_iter = np.floor_divide((shape_1X[1] - window), stride) + 1
         iter_array = np.arange(0, stride*len_iter, stride)
 
         for sqce in enumerate(X):
