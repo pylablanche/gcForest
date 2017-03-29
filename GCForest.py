@@ -368,7 +368,7 @@ class gcForest(object):
 
         return prf_crf_pred_ref
 
-    def _cascade_layer(self, X, y=None, cv=3, layer=0):
+    def _cascade_layer(self, X, y=None, layer=0):
         """ Cascade layer containing Random Forest estimators.
         If y is not None the layer is trained.
 
@@ -378,9 +378,6 @@ class gcForest(object):
 
         :param y: np.array (default=None)
             Target values. If 'None' perform training.
-
-        :param cv: int (default=3)
-            Number of split for k-fold cross-validation.
 
         :param layer: int (default=0)
             Layer indice. Used to call the previously trained layer.
