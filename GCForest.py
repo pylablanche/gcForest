@@ -37,7 +37,7 @@ class gcForest(object):
 
     def __init__(self, shape_1X=None, n_mgsRFtree=30, window=None, stride=1,
                  cascade_test_size=0.2, n_cascadeRF=2, n_cascadeRFtree=101, cascade_layer=np.inf,
-                 min_samples=0.05, tolerance=0.0, n_jobs=1):
+                 min_samples_mgs=0.1, min_samples_cascade=0.05, tolerance=0.0, n_jobs=1):
         """ gcForest Classifier.
 
         :param shape_1X: tuple list or np.array (default=None)
@@ -64,9 +64,15 @@ class gcForest(object):
         :param n_cascadeRFtree: int (default=101)
             Number of trees in a single Random Forest in a cascade layer.
 
-        :param min_samples: float or int (default=0.1)
+        :param min_samples_mgs: float or int (default=0.1)
             Minimum number of samples in a node to perform a split
-            during the training of any Random Forest.
+            during the training of Multi-Grain Scanning Random Forest.
+            If int number_of_samples = int.
+            If float, min_samples represents the fraction of the initial n_samples to consider.
+
+        :param min_samples_cascade: float or int (default=0.1)
+            Minimum number of samples in a node to perform a split
+            during the training of Cascade Random Forest.
             If int number_of_samples = int.
             If float, min_samples represents the fraction of the initial n_samples to consider.
 
@@ -97,7 +103,8 @@ class gcForest(object):
         setattr(self, 'n_mgsRFtree', int(n_mgsRFtree))
         setattr(self, 'n_cascadeRFtree', int(n_cascadeRFtree))
         setattr(self, 'cascade_layer', cascade_layer)
-        setattr(self, 'min_samples', min_samples)
+        setattr(self, 'min_samples_mgs', min_samples_mgs)
+        setattr(self, 'min_samples_cascade', min_samples_cascade)
         setattr(self, 'tolerance', tolerance)
         setattr(self, 'n_jobs', n_jobs)
 
@@ -203,7 +210,7 @@ class gcForest(object):
         """
 
         n_tree = getattr(self, 'n_mgsRFtree')
-        min_samples = getattr(self, 'min_samples')
+        min_samples = getattr(self, 'min_samples_mgs')
         stride = getattr(self, 'stride')
 
         if shape_1X[0] > 1:
@@ -388,7 +395,7 @@ class gcForest(object):
 
         n_tree = getattr(self, 'n_cascadeRFtree')
         n_cascadeRF = getattr(self, 'n_cascadeRF')
-        min_samples = getattr(self, 'min_samples')
+        min_samples = getattr(self, 'min_samples_cascade')
 
         n_jobs = getattr(self, 'n_jobs')
         prf = RandomForestClassifier(n_estimators=n_tree, max_features='sqrt',
