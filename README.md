@@ -40,6 +40,7 @@ I wrote the code from scratch in two days and even though I have tested it on se
 ### Known Issues
 
 **Memory comsuption when slicing data**
+There is now a short naive calculation illustrating the issue in the notebook.
 So far the input data slicing is done all in a single step to train the Random Forest for the Multi-Grain Scanning. The problem is that it might requires a lot of memory depending on the size of the data set and the number of slices asked resulting in memory crashes (at least on my Intel Core 2 Duo).<br>
 *A solution would be to adopt a minibatch training strategy for instance. More investigation is currently done on this issue to find an appropriate training strategy.*
 
