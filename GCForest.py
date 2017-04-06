@@ -1,7 +1,7 @@
 #!usr/bin/env python
 """
-Version : 0.1.2
-Date : 29th March 2017
+Version : 0.1.3
+Date : 6th April 2017
 
 Author : Pierre-Yves Lablanche
 Email : plablanche@aims.ac.za
@@ -28,7 +28,7 @@ from sklearn.metrics import accuracy_score
 __author__ = "Pierre-Yves Lablanche"
 __email__ = "plablanche@aims.ac.za"
 __license__ = "MIT"
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 __status__ = "Development"
 
 
@@ -40,8 +40,9 @@ class gcForest(object):
                  min_samples_mgs=0.1, min_samples_cascade=0.05, tolerance=0.0, n_jobs=1):
         """ gcForest Classifier.
 
-        :param shape_1X: tuple list or np.array (default=None)
+        :param shape_1X: int or tuple list or np.array (default=None)
             Shape of a single sample element [n_lines, n_cols]. Required when calling mg_scanning!
+            For sequence data a single int can be given.
 
         :param n_mgsRFtree: int (default=30)
             Number of trees in a Random Forest during Multi Grain Scanning.
@@ -89,7 +90,6 @@ class gcForest(object):
             The number of jobs to run in parallel for any Random Forest fit and predict.
             If -1, then the number of jobs is set to the number of cores.
         """
-
         setattr(self, 'shape_1X', shape_1X)
         setattr(self, 'n_layer', 0)
         setattr(self, '_n_samples', 0)
@@ -119,7 +119,6 @@ class gcForest(object):
             1D array containing the target values.
             Must be of shape [n_samples]
         """
-
         if np.shape(X)[0] != len(y):
             raise ValueError('Sizes of y and X do not match.')
 
@@ -136,7 +135,6 @@ class gcForest(object):
         :return: np.array
             1D array containing the predicted class probabilities for each input sample.
         """
-
         mgs_X = self.mg_scanning(X)
         cascade_all_pred_prob = self.cascade_forest(mgs_X)
         predict_proba = np.mean(cascade_all_pred_prob, axis=0)
@@ -153,7 +151,6 @@ class gcForest(object):
         :return: np.array
             1D array containing the predicted class for each input sample.
         """
-
         pred_proba = self.predict_proba(X=X)
         predictions = np.argmax(pred_proba, axis=1)
 
@@ -171,11 +168,10 @@ class gcForest(object):
         :return: np.array
             Array of shape [n_samples, .. ] containing Multi Grain Scanning sliced data.
         """
-
         setattr(self, '_n_samples', np.shape(X)[0])
         shape_1X = getattr(self, 'shape_1X')
-        if len(shape_1X) < 2:
-            raise ValueError('shape parameter must be a tuple')
+        if isinstance(shape_1X, int):
+            shape_1X = [1,shape_1X]
         if not getattr(self, 'window'):
             setattr(self, 'window', [shape_1X[1]])
 
@@ -208,7 +204,6 @@ class gcForest(object):
             Array of size [n_samples, ..] containing the Random Forest.
             prediction probability for each input sample.
         """
-
         n_tree = getattr(self, 'n_mgsRFtree')
         min_samples = getattr(self, 'min_samples_mgs')
         stride = getattr(self, 'stride')
@@ -266,7 +261,6 @@ class gcForest(object):
         :return: np.array and np.array
             Arrays containing the sliced images and target values (empty if 'y' is None).
         """
-
         if any(s < window for s in shape_1X):
             raise ValueError('window must be smaller than both dimensions for an image')
 
@@ -339,7 +333,6 @@ class gcForest(object):
         :return: np.array
             1D array containing the predicted class for each input sample.
         """
-
         if y is not None:
             setattr(self, 'n_layer', 0)
             test_size = getattr(self, 'cascade_test_size')
@@ -392,7 +385,6 @@ class gcForest(object):
         :return: list
             List containing the prediction probabilities for all samples.
         """
-
         n_tree = getattr(self, 'n_cascadeRFtree')
         n_cascadeRF = getattr(self, 'n_cascadeRF')
         min_samples = getattr(self, 'min_samples_cascade')
@@ -435,7 +427,6 @@ class gcForest(object):
         :return: float
             the cascade accuracy.
         """
-
         casc_pred_prob = np.mean(self.cascade_forest(X_test), axis=0)
         casc_pred = np.argmax(casc_pred_prob, axis=1)
         casc_accuracy = accuracy_score(y_true=y_test, y_pred=casc_pred)
@@ -458,7 +449,6 @@ class gcForest(object):
             Concatenation of X and the predicted probabilities.
             To be used for the next layer in a cascade forest.
         """
-
         swap_pred = np.swapaxes(prf_crf_pred, 0, 1)
         add_feat = swap_pred.reshape([np.shape(X)[0], -1])
         feat_arr = np.concatenate([add_feat, X], axis=1)
