@@ -1,7 +1,7 @@
 #!usr/bin/env python
 """
-Version : 0.1.3
-Date : 6th April 2017
+Version : 0.1.4
+Date : 15th April 2017
 
 Author : Pierre-Yves Lablanche
 Email : plablanche@aims.ac.za
@@ -28,7 +28,7 @@ from sklearn.metrics import accuracy_score
 __author__ = "Pierre-Yves Lablanche"
 __email__ = "plablanche@aims.ac.za"
 __license__ = "MIT"
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 __status__ = "Development"
 
 
@@ -264,22 +264,20 @@ class gcForest(object):
         if any(s < window for s in shape_1X):
             raise ValueError('window must be smaller than both dimensions for an image')
 
-        sliced_imgs = []
-        sliced_target = []
-        refs = np.arange(0, window * shape_1X[0], shape_1X[1])
-
         len_iter_x = np.floor_divide((shape_1X[1] - window), stride) + 1
         len_iter_y = np.floor_divide((shape_1X[0] - window), stride) + 1
         iterx_array = np.arange(0, stride*len_iter_x, stride)
         itery_array = np.arange(0, stride*len_iter_y, stride)
 
-        for img, ix, iy in itertools.product(enumerate(X), iterx_array, itery_array):
-            rind = refs + ix + shape_1X[1] * iy
-            sliced_imgs.append(np.ravel([img[1][i:i + window] for i in rind]))
-            if y is not None:
-                sliced_target.append(y[img[0]])
+        ref_row = np.arange(0, window)
+        ref_ind = np.ravel([ref_row + shape_1X[1] * i for i in range(window)])
+        inds_to_take = [ref_ind + ix + shape_1X[1] * iy
+                        for ix, iy in itertools.product(iterx_array, itery_array)]
 
-        return np.asarray(sliced_imgs), np.asarray(sliced_target)
+        sliced_imgs = np.take(X, inds_to_take, axis=1).reshape(-1, window**2)
+        sliced_target = np.repeat(y, len_iter_x * len_iter_y)
+
+        return sliced_imgs, sliced_target
 
     def _window_slicing_sequence(self, X, window, shape_1X, y=None, stride=1):
         """ Slicing procedure for sequences (aka shape_1X = [.., 1]).
@@ -306,19 +304,16 @@ class gcForest(object):
         if shape_1X[1] < window:
             raise ValueError('window must be smaller than the sequence dimension')
 
-        sliced_sqce = []
-        sliced_target = []
-
         len_iter = np.floor_divide((shape_1X[1] - window), stride) + 1
         iter_array = np.arange(0, stride*len_iter, stride)
 
-        for sqce in enumerate(X):
-            slice_sqce = [sqce[1][i:i + window] for i in iter_array]
-            sliced_sqce.append(slice_sqce)
-            if y is not None:
-                sliced_target.append(np.repeat(y[sqce[0]], len_iter))
+        ind_1X = np.arange(np.prod(shape_1X))
+        inds_to_take = [ind_1X[i:i+window] for i in iter_array]
+        sliced_sqce = np.take(X, inds_to_take, axis=1).reshape(-1, window)
 
-        return np.reshape(sliced_sqce, [-1, window]), np.ravel(sliced_target)
+        sliced_target = np.repeat(y, len_iter)
+
+        return sliced_sqce, sliced_target
 
     def cascade_forest(self, X, y=None):
         """ Perform (or train if 'y' is not None) a cascade forest estimator.
