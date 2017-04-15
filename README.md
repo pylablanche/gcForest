@@ -42,7 +42,7 @@ I wrote the code from scratch in two days and even though I have tested it on se
 **Memory comsuption when slicing data**
 There is now a short naive calculation illustrating the issue in the notebook.
 So far the input data slicing is done all in a single step to train the Random Forest for the Multi-Grain Scanning. The problem is that it might requires a lot of memory depending on the size of the data set and the number of slices asked resulting in memory crashes (at least on my Intel Core 2 Duo).<br>
-*A solution would be to adopt a minibatch training strategy for instance. More investigation is currently done on this issue to find an appropriate training strategy.*
+*I have recently improved the memory usage (from version 0.1.4) when slicing the data but will keep looking at ways to optimize the code.*
 
 **OOB score error**
 During the Random Forests training the Out-Of-Bag (OOB) technique is used for the prediction probabilities. It was found that this technique can sometimes raises an error when one or several samples is/are used for all trees training.<br>
@@ -51,7 +51,7 @@ During the Random Forests training the Out-Of-Bag (OOB) technique is used for th
 ## Built With
 
 * [PyCharm](https://www.jetbrains.com/pycharm/) community edition
-
+* ``memory_profiler`` library
 
 ## License
 This project is licensed under the MIT License (see `LICENSE` for details) 
