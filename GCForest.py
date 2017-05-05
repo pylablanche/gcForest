@@ -21,6 +21,7 @@ and a .predict() function for predictions.
 """
 import itertools
 import numpy as np
+from numpy.lib.stride_tricks import as_strided
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
@@ -275,7 +276,11 @@ class gcForest(object):
                         for ix, iy in itertools.product(iterx_array, itery_array)]
 
         sliced_imgs = np.take(X, inds_to_take, axis=1).reshape(-1, window**2)
-        sliced_target = np.repeat(y, len_iter_x * len_iter_y)
+
+        if y is not None:
+            sliced_target = np.repeat(y, len_iter_x * len_iter_y)
+        elif y is None:
+            sliced_target = None
 
         return sliced_imgs, sliced_target
 
@@ -311,7 +316,10 @@ class gcForest(object):
         inds_to_take = [ind_1X[i:i+window] for i in iter_array]
         sliced_sqce = np.take(X, inds_to_take, axis=1).reshape(-1, window)
 
-        sliced_target = np.repeat(y, len_iter)
+        if y is not None:
+            sliced_target = np.repeat(y, len_iter)
+        elif y is None:
+            sliced_target = None
 
         return sliced_sqce, sliced_target
 
