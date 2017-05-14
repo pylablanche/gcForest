@@ -21,7 +21,6 @@ and a .predict() function for predictions.
 """
 import itertools
 import numpy as np
-from numpy.lib.stride_tricks import as_strided
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
