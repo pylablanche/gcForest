@@ -360,6 +360,13 @@ class gcForest(object):
                 prf_crf_pred_layer = self._cascade_layer(feat_arr, y_train)
                 accuracy_layer = self._cascade_evaluation(X_test, y_test)
 
+            if accuracy_layer < accuracy_ref :
+                n_cascadeRF = getattr(self, 'n_cascadeRF')
+                for irf in range(n_cascadeRF):
+                    delattr(self, '_casprf{}_{}'.format(self.n_layer, irf))
+                    delattr(self, '_cascrf{}_{}'.format(self.n_layer, irf))
+                self.n_layer -= 1
+
         elif y is None:
             at_layer = 1
             prf_crf_pred_ref = self._cascade_layer(X, layer=at_layer)
