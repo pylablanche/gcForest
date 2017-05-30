@@ -2,6 +2,11 @@
 
 *Status* : under development
 
+## What's New
+version 0.1.5 : remove layer when accuracy gets worse (behavior corrected thanks to [felixwzh](https://github.com/felixwzh)).
+version 0.1.4 : faster slicing method.
+
+## Presentation
 **gcForest** is a deep forest algorithm suggested in Zhou and Feng 2017 ( https://arxiv.org/abs/1702.08835 ). It uses a multi-grain scanning approach for data slicing and a cascade structure of multiple random forests layers (see paper for details).
 
 The present **gcForest** implementation has been first developed as a Classifier and designed such that the multi-grain scanning module and the cascade structure can be used separately. During development I've paid special attention to write the code in the way that future parallelization should be pretty straightforward to implement.
@@ -42,7 +47,8 @@ I wrote the code from scratch in two days and even though I have tested it on se
 **Memory comsuption when slicing data**
 There is now a short naive calculation illustrating the issue in the notebook.
 So far the input data slicing is done all in a single step to train the Random Forest for the Multi-Grain Scanning. The problem is that it might requires a lot of memory depending on the size of the data set and the number of slices asked resulting in memory crashes (at least on my Intel Core 2 Duo).<br>
-*I have recently improved the memory usage (from version 0.1.4) when slicing the data but will keep looking at ways to optimize the code.*
+*The memory consumption when slicing data is more complicated than it seems. A StackOverflow related post can be found [here](https://stackoverflow.com/questions/43822413/numpy-minimum-memory-usage-when-slicing-images).
+The main problem is the non-contiguous aspect of the sliced array with the original data forcing a copy to be made in memory.*
 
 **OOB score error**
 During the Random Forests training the Out-Of-Bag (OOB) technique is used for the prediction probabilities. It was found that this technique can sometimes raises an error when one or several samples is/are used for all trees training.<br>
