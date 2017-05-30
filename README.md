@@ -3,7 +3,7 @@
 *Status* : under development
 
 ## What's New
-version 0.1.5 : remove layer when accuracy gets worse (behavior corrected thanks to [felixwzh](https://github.com/felixwzh)).
+version 0.1.5 : remove layer when accuracy gets worse (behavior corrected thanks to [felixwzh](https://github.com/felixwzh)).<br>
 version 0.1.4 : faster slicing method.
 
 ## Presentation
