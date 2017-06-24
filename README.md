@@ -7,9 +7,11 @@ version 0.1.5 : remove layer when accuracy gets worse (behavior corrected thanks
 version 0.1.4 : faster slicing method.
 
 ## Presentation
-**gcForest** is a deep forest algorithm suggested in Zhou and Feng 2017 ( https://arxiv.org/abs/1702.08835 ). It uses a multi-grain scanning approach for data slicing and a cascade structure of multiple random forests layers (see paper for details).
+**gcForest** is a deep forest algorithm suggested in Zhou and Feng 2017 ( [https://arxiv.org/abs/1702.08835](https://arxiv.org/abs/1702.08835) ). It uses a multi-grain scanning approach for data slicing and a cascade structure of multiple random forests layers (see paper for details).
 
 The present **gcForest** implementation has been first developed as a Classifier and designed such that the multi-grain scanning module and the cascade structure can be used separately. During development I've paid special attention to write the code in the way that future parallelization should be pretty straightforward to implement.
+
+You can find the official release of the code used in Zhou and Feng 2017 [here](https://github.com/kingfengji/gcforest). 
 
 ## Prerequisites
 
@@ -37,6 +39,18 @@ gcf.fit(X_train, y_train)
 gcf.predict(X_test)
 ```
 
+## Saving and Loading Models
+
+Using `sklearn.externals.joblib` you can easily save your model to disk and load it later. Just proceed as follow :<br>
+To save :
+```python
+from sklearn.externals import joblib
+joblib.dump(gcf, 'name_of_file.sav')
+```
+To load :
+```python
+joblib.load('name_of_file.sav')
+```
 
 ## Notes
 I wrote the code from scratch in two days and even though I have tested it on several cases I cannot certify that it is a 100% bug free obviously.
