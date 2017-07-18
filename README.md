@@ -25,7 +25,7 @@ The present code has been developed under python3.x. You will need to have the f
 You can install all of them using `pip` install :
 
 ```sh
-$ pip3 install requirements.txt
+$ pip3 install -r requirements.txt
 ```
 
 ## Using gcForest
