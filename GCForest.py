@@ -219,7 +219,7 @@ class gcForest(object):
             n_jobs = getattr(self, 'n_jobs')
             prf = RandomForestClassifier(n_estimators=n_tree, max_features='sqrt',
                                          min_samples_split=min_samples, oob_score=True, n_jobs=n_jobs)
-            crf = RandomForestClassifier(n_estimators=n_tree, max_features=None,
+            crf = RandomForestClassifier(n_estimators=n_tree, max_features=1,
                                          min_samples_split=min_samples, oob_score=True, n_jobs=n_jobs)
             print('Training MGS Random Forests...')
             prf.fit(sliced_X, sliced_y)
@@ -401,7 +401,7 @@ class gcForest(object):
         n_jobs = getattr(self, 'n_jobs')
         prf = RandomForestClassifier(n_estimators=n_tree, max_features='sqrt',
                                      min_samples_split=min_samples, oob_score=True, n_jobs=n_jobs)
-        crf = RandomForestClassifier(n_estimators=n_tree, max_features=None,
+        crf = RandomForestClassifier(n_estimators=n_tree, max_features=1,
                                      min_samples_split=min_samples, oob_score=True, n_jobs=n_jobs)
 
         prf_crf_pred = []
