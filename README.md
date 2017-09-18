@@ -1,8 +1,9 @@
 # Deep Forest in Python
 
-*Status* : under development
+*Status* : not under active development
 
 ## What's New
+version 0.1.6 : corrected `max_features=1` for the completely random forest (correction thanks to [sevenguin](https://github.com/sevenguin)).<br>
 version 0.1.5 : remove layer when accuracy gets worse (behavior corrected thanks to [felixwzh](https://github.com/felixwzh)).<br>
 version 0.1.4 : faster slicing method.
 
