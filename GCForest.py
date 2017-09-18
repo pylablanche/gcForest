@@ -1,6 +1,6 @@
 #!usr/bin/env python
 """
-Version : 0.1.5
+Version : 0.1.6
 Date : 15th April 2017
 
 Author : Pierre-Yves Lablanche
@@ -28,7 +28,7 @@ from sklearn.metrics import accuracy_score
 __author__ = "Pierre-Yves Lablanche"
 __email__ = "plablanche@aims.ac.za"
 __license__ = "MIT"
-__version__ = "0.1.5"
+__version__ = "0.1.6"
 __status__ = "Development"
 
 
