@@ -10,7 +10,7 @@ Affiliation : African Institute for Mathematical Sciences - South Africa
 
 License : MIT
 
-Status : Under Development
+Status : Not Under Active Development
 
 Description :
 Python3 implementation of the gcForest algorithm preesented in Zhou and Feng 2017
@@ -29,7 +29,7 @@ __author__ = "Pierre-Yves Lablanche"
 __email__ = "plablanche@aims.ac.za"
 __license__ = "MIT"
 __version__ = "0.1.6"
-__status__ = "Development"
+#__status__ = "Development"
 
 
 # noinspection PyUnboundLocalVariable
